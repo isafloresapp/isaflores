@@ -25,9 +25,9 @@ export interface CustomFlowerOption {
   iconSvg: string;
 }
 
-const DB_PRODUCTS_KEY = 'isaflores_db_products_v3';
-const DB_ORDERS_KEY = 'isaflores_db_orders_v3';
-const DB_CUSTOM_FLOWERS_KEY = 'isaflores_db_custom_flowers_v3';
+const DB_PRODUCTS_KEY = 'isaflores_db_products_v4';
+const DB_ORDERS_KEY = 'isaflores_db_orders_v4';
+const DB_CUSTOM_FLOWERS_KEY = 'isaflores_db_custom_flowers_v4';
 
 const INITIAL_CUSTOM_FLOWERS: CustomFlowerOption[] = [
   { id: 'girasol', name: 'Girasol Silvestre', colorName: 'Amarillo Girasol', colorHex: '#EAB308', pricePerStem: 1800, iconSvg: '🌻' },
@@ -38,14 +38,14 @@ const INITIAL_CUSTOM_FLOWERS: CustomFlowerOption[] = [
 ];
 
 class DatabaseService {
-  // 100% DIRECT BI-DIRECTIONAL SUPABASE CLOUD PRODUCTS SYNC
+  // PRODUCTS OPERATIONS (LOCAL + BI-DIRECTIONAL SUPABASE CLOUD)
   async getProducts(): Promise<Product[]> {
     try {
       if (supabase) {
         const { data, error } = await supabase.from('products').select('*');
         if (!error && data && data.length > 0) {
           const formattedProducts: Product[] = data.map((p) => ({
-            id: p.id,
+            id: String(p.id),
             name: p.name || 'Flor IsaFlores',
             price: Number(p.price) || 14990,
             category: p.category || 'ramos',
@@ -55,11 +55,11 @@ class DatabaseService {
             fullDetails: p.description || '',
             badge: p.badge || 'Destacado',
             image: p.image || 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800',
-            images: [p.image],
+            images: [p.image || 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800'],
             bgTint: '#FDF0F5',
             rating: Number(p.rating) || 5.0,
             reviewsCount: 15,
-            tags: [p.category, 'flores eternas']
+            tags: [p.category || 'flores', 'flores eternas']
           }));
 
           this.saveProductsLocal(formattedProducts);
@@ -88,17 +88,27 @@ class DatabaseService {
   async saveProductCloud(product: Product): Promise<void> {
     try {
       if (supabase) {
+        // Sanitize image string if too long for Supabase field
+        let safeImage = product.image || 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800';
+        if (safeImage.length > 500000) {
+          safeImage = 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800';
+        }
+
         const payload = {
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          category: product.category,
-          description: product.description,
-          badge: product.badge || 'Nuevo',
-          image: product.image,
-          rating: product.rating || 5.0
+          id: String(product.id),
+          name: String(product.name || 'Nuevo Producto'),
+          price: Number(product.price) || 0,
+          category: String(product.category || 'ramos'),
+          description: String(product.description || ''),
+          badge: String(product.badge || 'Nuevo'),
+          image: safeImage,
+          rating: Number(product.rating) || 5.0
         };
-        await supabase.from('products').upsert(payload);
+
+        const { error } = await supabase.from('products').upsert(payload);
+        if (error) {
+          console.error('Supabase Product Upsert Error:', error.message);
+        }
       }
     } catch (e) {
       console.warn('Error saving product to Supabase cloud:', e);
@@ -106,18 +116,38 @@ class DatabaseService {
   }
 
   async addProduct(product: Product): Promise<Product[]> {
-    await this.saveProductCloud(product);
-    const products = await this.getProducts();
-    const updated = [product, ...products.filter(p => p.id !== product.id)];
+    // 1. Get current local products
+    let current = [];
+    try {
+      const stored = localStorage.getItem(DB_PRODUCTS_KEY);
+      current = stored ? JSON.parse(stored) : INITIAL_PRODUCTS;
+    } catch (e) {
+      current = INITIAL_PRODUCTS;
+    }
+
+    // 2. Prepend new product immediately
+    const updated = [product, ...current.filter((p: any) => p.id !== product.id)];
     this.saveProductsLocal(updated);
+
+    // 3. Sync to Supabase Cloud in background
+    this.saveProductCloud(product);
+
     return updated;
   }
 
   async updateProduct(product: Product): Promise<Product[]> {
-    await this.saveProductCloud(product);
-    const products = await this.getProducts();
-    const updated = products.map((p) => (p.id === product.id ? product : p));
+    let current = [];
+    try {
+      const stored = localStorage.getItem(DB_PRODUCTS_KEY);
+      current = stored ? JSON.parse(stored) : INITIAL_PRODUCTS;
+    } catch (e) {
+      current = INITIAL_PRODUCTS;
+    }
+
+    const updated = current.map((p: any) => (p.id === product.id ? product : p));
     this.saveProductsLocal(updated);
+    this.saveProductCloud(product);
+
     return updated;
   }
 
@@ -128,20 +158,27 @@ class DatabaseService {
       }
     } catch (e) {}
 
-    const products = await this.getProducts();
-    const updated = products.filter((p) => p.id !== productId);
+    let current = [];
+    try {
+      const stored = localStorage.getItem(DB_PRODUCTS_KEY);
+      current = stored ? JSON.parse(stored) : INITIAL_PRODUCTS;
+    } catch (e) {
+      current = INITIAL_PRODUCTS;
+    }
+
+    const updated = current.filter((p: any) => p.id !== productId);
     this.saveProductsLocal(updated);
     return updated;
   }
 
-  // 100% DIRECT BI-DIRECTIONAL SUPABASE CLOUD ORDERS SYNC
+  // ORDERS OPERATIONS (LOCAL + BI-DIRECTIONAL SUPABASE CLOUD)
   async getOrders(): Promise<DbOrder[]> {
     try {
       if (supabase) {
         const { data, error } = await supabase.from('orders').select('*').order('createdAt', { ascending: false });
         if (!error && data && data.length > 0) {
           const formattedOrders: DbOrder[] = data.map((o) => ({
-            id: o.id,
+            id: String(o.id),
             customerName: o.customerName || 'Cliente',
             phone: o.phone || '',
             addressComuna: o.addressComuna || 'La Florida',
@@ -192,29 +229,52 @@ class DatabaseService {
       createdAt: new Date().toISOString(),
     };
 
-    await this.saveOrderCloud(newOrder);
-    const orders = await this.getOrders();
-    const updated = [newOrder, ...orders.filter(o => o.id !== newOrder.id)];
+    let current = [];
+    try {
+      const stored = localStorage.getItem(DB_ORDERS_KEY);
+      current = stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      current = [];
+    }
+
+    const updated = [newOrder, ...current.filter((o: any) => o.id !== newOrder.id)];
     this.saveOrdersLocal(updated);
+    this.saveOrderCloud(newOrder);
+
     return updated;
   }
 
   async updateOrderStatus(orderId: string, status: DbOrder['status']): Promise<DbOrder[]> {
-    const orders = await this.getOrders();
-    const target = orders.find((o) => o.id === orderId);
+    let current: DbOrder[] = [];
+    try {
+      const stored = localStorage.getItem(DB_ORDERS_KEY);
+      current = stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      current = [];
+    }
+
+    const target = current.find((o) => o.id === orderId);
     if (target) {
       const updatedOrder = { ...target, status };
-      await this.saveOrderCloud(updatedOrder);
+      this.saveOrderCloud(updatedOrder);
     }
-    const updatedList = orders.map((o) => (o.id === orderId ? { ...o, status } : o));
+
+    const updatedList = current.map((o) => (o.id === orderId ? { ...o, status } : o));
     this.saveOrdersLocal(updatedList);
     return updatedList;
   }
 
   async updateOrder(order: DbOrder): Promise<DbOrder[]> {
-    await this.saveOrderCloud(order);
-    const orders = await this.getOrders();
-    const updated = orders.map((o) => (o.id === order.id ? order : o));
+    this.saveOrderCloud(order);
+    let current: DbOrder[] = [];
+    try {
+      const stored = localStorage.getItem(DB_ORDERS_KEY);
+      current = stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      current = [];
+    }
+
+    const updated = current.map((o) => (o.id === order.id ? order : o));
     this.saveOrdersLocal(updated);
     return updated;
   }
