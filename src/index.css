@@ -2,11 +2,11 @@
 
 @layer base {
   :root {
-    /* Winter Palette Color System */
+    /* Winter Palette Clean Color System */
     --winter-berry: #C2185B;
-    --winter-[#00838F]: #00838F;
-    --winter-[#0288D1]: #0288D1;
-    --winter-[#1A237E]: #1A237E;
+    --winter-cyan: #00838F;
+    --winter-sky: #0288D1;
+    --winter-navy: #1A237E;
     --winter-bg: #F4F8FA;
     --winter-snow: #FFFFFF;
     --winter-evergreen: #00695C;
