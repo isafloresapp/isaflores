@@ -58,14 +58,6 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
   const [flPrice, setFlPrice] = useState<number>(1500);
   const [flIcon, setFlIcon] = useState('🌸');
 
-  // Edit Order Form Fields
-  const [ordName, setOrdName] = useState('');
-  const [ordPhone, setOrdPhone] = useState('');
-  const [ordAddress, setOrdAddress] = useState('');
-  const [ordTotal, setOrdTotal] = useState<number>(0);
-  const [ordStatus, setOrdStatus] = useState<DbOrder['status']>('pendiente');
-  const [ordNotes, setOrdNotes] = useState('');
-
   // Taxonomies State
   const [categories, setCategories] = useState(INITIAL_CATEGORIES);
   const [subcategoriesMap, setSubcategoriesMap] = useState(INITIAL_SUBCATEGORIES);
@@ -106,9 +98,9 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     const loadedOrders = await db.getOrders();
     const loadedProducts = await db.getProducts();
     const loadedCustomFlowers = await db.getCustomFlowers();
-    setOrders(loadedOrders);
-    setProductsList(loadedProducts);
-    setCustomFlowers(loadedCustomFlowers);
+    setOrders(loadedOrders || []);
+    setProductsList(loadedProducts || []);
+    setCustomFlowers(loadedCustomFlowers || []);
   };
 
   if (!isOpen) return null;
@@ -140,9 +132,10 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
 
   const generateAutoFields = (productName: string, desc: string) => {
     const randomNum = Math.floor(1000 + Math.random() * 9000);
-    const newSku = `ISA-${productName.slice(0, 3).toUpperCase()}-${randomNum}`;
-    const title = `${productName} | Flores Eternas IsaFlores Chile`;
-    const metaDesc = `${desc || productName} - Hecho a mano en Chile con limpiapipas y goma EVA. Despacho gratis en La Florida.`;
+    const safeName = (productName || 'RAM').slice(0, 3).toUpperCase();
+    const newSku = `ISA-${safeName}-${randomNum}`;
+    const title = `${productName || 'Producto'} | Flores Eternas IsaFlores Chile`;
+    const metaDesc = `${desc || productName || 'Producto IsaFlores'} - Hecho a mano en Chile con limpiapipas y goma EVA. Despacho gratis en La Florida.`;
 
     setSku(newSku);
     setMetaTitle(title);
@@ -167,20 +160,20 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
 
   const handleOpenEditProduct = (prod: Product) => {
     setEditingId(prod.id);
-    setName(prod.name);
-    setPrice(prod.price);
+    setName(prod.name || '');
+    setPrice(prod.price || 0);
     setCategory(prod.category || 'ramos');
     setSubcategory((prod as any).subcategory || 'Ramos de Autor');
-    setDescription(prod.description);
+    setDescription(prod.description || '');
     setBadge(prod.badge || 'Destacado');
     setImg1(prod.image || '');
     setImg2((prod as any).images?.[1] || '');
     setImg3((prod as any).images?.[2] || '');
     setSelectedColors((prod as any).colors || ['Fucsia Magenta']);
     
-    setSku((prod as any).sku || `ISA-${prod.id.slice(0, 4).toUpperCase()}-2026`);
-    setMetaTitle((prod as any).metaTitle || `${prod.name} | IsaFlores Chile`);
-    setMetaDescription((prod as any).metaDescription || prod.description);
+    setSku((prod as any).sku || `ISA-${(prod.id || 'PROD').slice(0, 4).toUpperCase()}-2026`);
+    setMetaTitle((prod as any).metaTitle || `${prod.name || 'Producto'} | IsaFlores Chile`);
+    setMetaDescription((prod as any).metaDescription || prod.description || '');
 
     setIsEditingProduct(true);
   };
@@ -191,23 +184,23 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
 
     const updatedProduct: any = {
       id: editingId || `prod-${Date.now()}`,
-      name,
-      price,
-      category,
+      name: name || 'Ramo Sin Nombre',
+      price: price || 0,
+      category: category || 'ramos',
       categoryLabel: categories.find((c) => c.id === category)?.label || 'Flores',
-      subcategory,
-      description,
-      fullDetails: `${description}\n\n• SKU: ${sku}\n• Categoría: ${category} / ${subcategory}\n• Colores disponibles: ${selectedColors.join(', ')}`,
-      badge,
+      subcategory: subcategory || 'General',
+      description: description || '',
+      fullDetails: `${description || ''}\n\n• SKU: ${sku}\n• Categoría: ${category} / ${subcategory}\n• Colores disponibles: ${selectedColors.join(', ')}`,
+      badge: badge || 'Nuevo',
       image: img1 || 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800',
       images: imageArray,
       bgTint: '#FDF0F5',
       rating: 5.0,
       reviewsCount: 1,
       tags: [category, subcategory, ...selectedColors, 'flores eternas'],
-      sku,
-      metaTitle,
-      metaDescription,
+      sku: sku || 'ISA-AUTO-2026',
+      metaTitle: metaTitle || 'IsaFlores Chile',
+      metaDescription: metaDescription || 'Flores eternas',
       colors: selectedColors
     };
 
@@ -218,9 +211,9 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
       newProducts = await db.addProduct(updatedProduct);
     }
 
-    setProductsList(newProducts);
+    setProductsList(newProducts || []);
     if (onUpdateProductCatalog) {
-      onUpdateProductCatalog(newProducts);
+      onUpdateProductCatalog(newProducts || []);
     }
 
     setIsEditingProduct(false);
@@ -230,9 +223,9 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
   const handleDeleteProduct = async (prodId: string) => {
     if (confirm('¿Eliminar este producto de la Base de Datos?')) {
       const newProducts = await db.deleteProduct(prodId);
-      setProductsList(newProducts);
+      setProductsList(newProducts || []);
       if (onUpdateProductCatalog) {
-        onUpdateProductCatalog(newProducts);
+        onUpdateProductCatalog(newProducts || []);
       }
     }
   };
@@ -255,15 +248,6 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     setFlIcon('🌸');
   };
 
-  const handleEditFlowerOption = (fl: CustomFlowerOption) => {
-    setEditingFlowerId(fl.id);
-    setFlName(fl.name);
-    setFlColorName(fl.colorName);
-    setFlColorHex(fl.colorHex);
-    setFlPrice(fl.pricePerStem);
-    setFlIcon(fl.iconSvg);
-  };
-
   const handleSaveFlowerOption = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!flName.trim()) return;
@@ -273,7 +257,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
       name: flName,
       colorName: flColorName,
       colorHex: flColorHex,
-      pricePerStem: flPrice,
+      pricePerStem: flPrice || 0,
       iconSvg: flIcon || '🌸',
     };
 
@@ -291,43 +275,15 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     alert(`¡Opción de flor "${flName}" guardada en la Base de Datos!`);
   };
 
-  const handleDeleteFlowerOption = async (flowerId: string) => {
-    if (confirm('¿Eliminar esta variedad de flor del diseñador?')) {
-      const updatedList = customFlowers.filter((f) => f.id !== flowerId);
-      await db.saveCustomFlowers(updatedList);
-      setCustomFlowers(updatedList);
-    }
-  };
-
   // Order Status Handler
   const handleStatusChange = async (orderId: string, newStatus: DbOrder['status']) => {
     const updated = await db.updateOrderStatus(orderId, newStatus);
-    setOrders(updated);
-  };
-
-  const handleSaveEditedOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingOrder) return;
-
-    const updatedOrder: DbOrder = {
-      ...editingOrder,
-      customerName: ordName,
-      phone: ordPhone,
-      addressComuna: ordAddress,
-      total: ordTotal,
-      status: ordStatus,
-      notes: ordNotes,
-    };
-
-    const updatedOrders = await db.updateOrder(updatedOrder);
-    setOrders(updatedOrders);
-    setEditingOrder(null);
-    alert(`¡Pedido ${editingOrder.id} guardado en la Base de Datos!`);
+    setOrders(updated || []);
   };
 
   const handleAddCategory = () => {
     if (!newCatName.trim()) return;
-    const catId = newCatName.toLowerCase().replace(/\s+/g, '-');
+    const catId = (newCatName || '').toLowerCase().replace(/\s+/g, '-');
     setCategories((prev) => [...prev, { id: catId, label: newCatName, icon: '🌸' }]);
     setSubcategoriesMap((prev) => ({ ...prev, [catId]: ['General'] }));
     setNewCatName('');
@@ -439,7 +395,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
               </button>
             </div>
 
-            {/* TAB 1: ORDERS */}
+            {/* TAB 1: ORDERS WITH FAILSAFE PROTECTION AGAINST UNDEFINED PROPS */}
             {activeTab === 'orders' && (
               <div className="space-y-4">
                 <h4 className="font-syne text-xl font-black text-white">Cotizaciones Registradas</h4>
@@ -455,43 +411,46 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/10 text-xs font-bold">
-                      {orders.map((o) => (
-                        <tr key={o.id}>
-                          <td className="py-3"><span className="text-[#ff96c5] block">{o.id}</span>{o.customerName}</td>
-                          <td className="py-3">{o.phone}</td>
-                          <td className="py-3 text-[#ffc0dc]">${o.total.toLocaleString('es-CL')}</td>
-                          <td className="py-3">
-                            <select
-                              value={o.status}
-                              onChange={(e) => handleStatusChange(o.id, e.target.value as any)}
-                              className="bg-[#2B051C] text-xs font-bold border border-white/30 rounded-xl px-2 py-1"
-                            >
-                              <option value="pendiente">⏳ Pendiente</option>
-                              <option value="en_preparacion">⚙️ En Taller</option>
-                              <option value="despachado">✓ Despachado</option>
-                              <option value="cancelado">❌ Cancelado</option>
-                            </select>
-                          </td>
-                          <td className="py-3 text-right">
-                            <a href={`https://wa.me/${o.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white text-[10px] font-black px-3 py-1.5 rounded-full">
-                              WhatsApp
-                            </a>
-                          </td>
-                        </tr>
-                      ))}
+                      {orders.map((o) => {
+                        const safePhone = (o.phone || '').replace(/[^0-9]/g, '');
+                        const safeTotal = (o.total || 0).toLocaleString('es-CL');
+                        return (
+                          <tr key={o.id || Math.random().toString()}>
+                            <td className="py-3"><span className="text-[#ff96c5] block">{o.id || 'ORD-00'}</span>{o.customerName || 'Cliente'}</td>
+                            <td className="py-3">{o.phone || 'Sin teléfono'}</td>
+                            <td className="py-3 text-[#ffc0dc]">${safeTotal}</td>
+                            <td className="py-3">
+                              <select
+                                value={o.status || 'pendiente'}
+                                onChange={(e) => handleStatusChange(o.id, e.target.value as any)}
+                                className="bg-[#2B051C] text-xs font-bold border border-white/30 rounded-xl px-2 py-1"
+                              >
+                                <option value="pendiente">⏳ Pendiente</option>
+                                <option value="en_preparacion">⚙️ En Taller</option>
+                                <option value="despachado">✓ Despachado</option>
+                                <option value="cancelado">❌ Cancelado</option>
+                              </select>
+                            </td>
+                            <td className="py-3 text-right">
+                              <a href={`https://wa.me/${safePhone}`} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white text-[10px] font-black px-3 py-1.5 rounded-full">
+                                WhatsApp
+                              </a>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
               </div>
             )}
 
-            {/* TAB 2: PRODUCTS MANAGER (OPTIMIZED FOR MOBILE PHONES & COMPUTERS) */}
+            {/* TAB 2: PRODUCTS MANAGER */}
             {activeTab === 'products' && (
               <div className="space-y-6">
                 {!isEditingProduct ? (
                   /* Products List & Prominent Mobile Action Button */
                   <div className="space-y-4">
-                    {/* Big Action Button Prominent on Mobile Screen */}
                     <div className="bg-[#42082B] p-4 rounded-2xl border-2 border-[#25D366] flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl">
                       <div>
                         <h4 className="font-syne text-lg sm:text-xl font-black text-white">
@@ -519,8 +478,8 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                             <div className="overflow-hidden">
                               <span className="text-[9px] font-black text-[#ff96c5] block uppercase">{prod.categoryLabel || prod.category}</span>
                               <h5 className="font-syne text-sm font-bold text-white truncate">{prod.name}</h5>
-                              <span className="text-xs font-black text-[#ffc0dc]">${prod.price.toLocaleString('es-CL')} CLP</span>
-                              <span className="text-[9px] text-white/50 block">SKU: {(prod as any).sku || 'ISA-AUTO-2026'}</span>
+                              <span className="text-xs font-black text-[#ffc0dc]">${(prod.price || 0).toLocaleString('es-CL')} CLP</span>
+                              <span className="text-[9px] text-white/50 block">SKU: {(prod as any).sku || `ISA-${(prod.id || 'PROD').slice(0, 4).toUpperCase()}-2026`}</span>
                             </div>
                           </div>
 
@@ -735,7 +694,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                       </button>
                       <button
                         type="submit"
-                        className="px-8 py-3 rounded-full bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs uppercase shadow-xl cursor-pointer"
+                        className="px-8 py-3 rounded-full bg-[#25D366] hover:bg-[#128C7E] text-[#1A1A1A] font-black text-xs uppercase shadow-xl cursor-pointer"
                       >
                         Guardar Producto en BD
                       </button>
