@@ -19,6 +19,7 @@ import { OrderStepsSection } from './components/OrderStepsSection';
 import { ReviewsSection } from './components/ReviewsSection';
 import { FaqAccordion } from './components/FaqAccordion';
 import { Footer } from './components/Footer';
+import { Sparkles, PackageSearch, MessageCircle, Heart, Plus, ShieldCheck, Truck, Zap } from 'lucide-react';
 
 export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -133,19 +134,9 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-[#1A0D18] flex flex-col font-sans pb-16 lg:pb-0">
-      {/* Fullscreen Video Hero */}
-      <HeroFullscreen
-        cartCount={totalCartCount}
-        wishlistCount={wishlistIds.length}
-        onOpenCart={() => setIsCartOpen(true)}
-        onOpenWishlist={() => setIsWishlistOpen(true)}
-        onOpenCustomBuilder={() => setIsCustomBuilderOpen(true)}
-        onExploreCatalog={scrollToCatalog}
-        onSelectCategory={setSelectedCategory}
-      />
-
-      {/* Sticky Quick Storefront Sub-Navbar */}
+    <div className="min-h-screen bg-[#F7F7F8] text-[#1A1A1A] flex flex-col font-sans pb-16 lg:pb-0">
+      
+      {/* ARCHITECTURE MODULE 1: Sticky Top Delivery Header */}
       <Navbar
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -159,15 +150,53 @@ export default function App() {
         onOpenOrderTracking={() => setIsOrderTrackingOpen(true)}
       />
 
-      {/* Main Page Content */}
-      <main className="flex-1">
-        {/* Feature & Story Carousel */}
+      {/* ARCHITECTURE MODULE 2: Delivery Storefront Body */}
+      <main className="flex-1 space-y-4">
+        
+        {/* Section 1 & 2: Hero Banner Promos & Category Avatars */}
+        <HeroFullscreen
+          cartCount={totalCartCount}
+          wishlistCount={wishlistIds.length}
+          onOpenCart={() => setIsCartOpen(true)}
+          onOpenWishlist={() => setIsWishlistOpen(true)}
+          onOpenCustomBuilder={() => setIsCustomBuilderOpen(true)}
+          onExploreCatalog={scrollToCatalog}
+          onSelectCategory={setSelectedCategory}
+        />
+
+        {/* Section 3: Feature Stories Slider */}
         <StoryCarousel
           onOpenCustomBuilder={() => setIsCustomBuilderOpen(true)}
           onExploreCatalog={scrollToCatalog}
         />
 
-        {/* Product Catalog Grid */}
+        {/* Section 4: Interactive Custom Bouquet Studio Card */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-8">
+          <div className="bg-gradient-to-r from-[#EA2840] to-[#D01E35] text-white p-6 rounded-3xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3 text-left">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+                <Sparkles className="w-6 h-6 text-[#FFC107]" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-lg text-white">
+                  ¿Quieres un ramo totalmente personalizado?
+                </h4>
+                <p className="text-xs text-[#FFEAEA]">
+                  Selecciona la cantidad, color e icono de cada flor desde $1.200 CLP el tallo.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsCustomBuilderOpen(true)}
+              className="bg-white hover:bg-[#FFEAEA] text-[#EA2840] font-black text-xs uppercase px-6 py-3 rounded-full shadow-md cursor-pointer transition-all shrink-0"
+            >
+              Abrir Estudio Diseña tu Ramo
+            </button>
+          </div>
+        </div>
+
+        {/* Section 5: Delivery Products Grid */}
         <ProductGrid
           products={productsList}
           selectedCategory={selectedCategory}
@@ -180,26 +209,52 @@ export default function App() {
           onOpenCustomBuilder={() => setIsCustomBuilderOpen(true)}
         />
 
-        {/* Brand Value Pillars */}
+        {/* Section 6: Real-Time Order Tracking Quick Banner */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-2">
+          <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-[#00A859]/10 text-[#00A859] flex items-center justify-center shrink-0">
+                <PackageSearch className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-base text-[#1A1A1A]">
+                  ¿Ya realizaste tu pedido? Sigue el estado en tiempo real
+                </h4>
+                <p className="text-xs text-gray-500 font-medium">
+                  Ingresa tu número de orden para escanear si está en elaboración en taller o despachado.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsOrderTrackingOpen(true)}
+              className="bg-[#EA2840] hover:bg-[#D01E35] text-white font-black text-xs uppercase px-6 py-3 rounded-full shadow-md cursor-pointer transition-all shrink-0"
+            >
+              🔍 Rastrear Mi Orden
+            </button>
+          </div>
+        </div>
+
+        {/* Section 7: Quality Value Pillars */}
         <CraftInfoBanner />
 
-        {/* Step-by-Step Purchase Guide */}
+        {/* Section 8: Delivery Purchase Guide */}
         <OrderStepsSection />
 
-        {/* Verified Customer Reviews */}
+        {/* Section 9: Customer Reviews */}
         <ReviewsSection />
 
-        {/* FAQ Accordion */}
+        {/* Section 10: FAQ Accordion */}
         <FaqAccordion />
       </main>
 
-      {/* Footer */}
+      {/* ARCHITECTURE MODULE 3: Store Footer */}
       <Footer onOpenCrm={() => setIsCrmOpen(true)} />
 
-      {/* Interactive Concierge Chatbot Widget */}
+      {/* ARCHITECTURE MODULE 4: WhatsApp Chatbot Floating Launcher */}
       <ChatbotWidget />
 
-      {/* Mobile Web App Bottom Navigation Tab Bar */}
+      {/* ARCHITECTURE MODULE 5: Mobile Web App Bottom Navigation Bar */}
       <MobileAppTabBar
         cartCount={totalCartCount}
         wishlistCount={wishlistIds.length}
@@ -210,26 +265,26 @@ export default function App() {
         onScrollToCatalog={scrollToCatalog}
       />
 
-      {/* Customer Real-Time Order Tracking Modal */}
+      {/* ARCHITECTURE MODULE 6: Order Tracking Modal */}
       <OrderTrackingModal
         isOpen={isOrderTrackingOpen}
         onClose={() => setIsOrderTrackingOpen(false)}
       />
 
-      {/* Internal CRM Management & Database Layer Modal */}
+      {/* ARCHITECTURE MODULE 7: CRM & Database Panel */}
       <CrmModal
         isOpen={isCrmOpen}
         onClose={() => setIsCrmOpen(false)}
         onUpdateProductCatalog={(newCatalog) => setProductsList(newCatalog)}
       />
 
-      {/* Custom Bouquet Studio Modal */}
+      {/* ARCHITECTURE MODULE 8: Custom Bouquet Studio */}
       <CustomBouquetBuilder
         isOpen={isCustomBuilderOpen}
         onClose={() => setIsCustomBuilderOpen(false)}
       />
 
-      {/* Quick Product View Modal */}
+      {/* ARCHITECTURE MODULE 9: Quick View Modal */}
       <QuickViewModal
         product={quickViewProduct}
         onClose={() => setQuickViewProduct(null)}
@@ -238,7 +293,7 @@ export default function App() {
         onToggleWishlist={handleToggleWishlist}
       />
 
-      {/* Cart Slide-over Drawer */}
+      {/* ARCHITECTURE MODULE 10: Cart & Checkout Drawers */}
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
@@ -249,7 +304,6 @@ export default function App() {
         onOpenCheckout={() => setIsCheckoutOpen(true)}
       />
 
-      {/* Quotation Checkout Modal */}
       <CheckoutModal
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
@@ -257,7 +311,6 @@ export default function App() {
         onClearCart={handleClearCart}
       />
 
-      {/* Wishlist Slide-over Drawer */}
       <WishlistDrawer
         isOpen={isWishlistOpen}
         onClose={() => setIsWishlistOpen(false)}
