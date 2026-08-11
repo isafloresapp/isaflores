@@ -50,14 +50,14 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     <section className="py-8 bg-[#F4F8FA] text-[#1A237E]" id="productos">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 text-left space-y-8">
 
-        {/* "Recomendados del Taller" Featured Horizontal Row */}
+        {/* Uber Eats "Seleccionados para Ti" Featured Row */}
         {selectedCategory === 'todos' && !searchQuery && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Snowflake className="w-5 h-5 text-[#00838F]" />
+                <Flame className="w-5 h-5 text-[#C2185B] fill-[#C2185B]" />
                 <h3 className="font-extrabold text-xl sm:text-2xl text-[#1A237E]">
-                  Destacados de Invierno
+                  Seleccionados para Ti
                 </h3>
               </div>
               <span className="text-xs font-bold text-[#00838F] uppercase">
@@ -72,41 +72,43 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                   <div
                     key={`feat-${p.id}`}
                     onClick={() => onQuickView(p)}
-                    className="bg-white rounded-2xl p-3 border border-cyan-100 shadow-xs hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
+                    className="bg-white rounded-2xl p-4 border border-cyan-100 shadow-xs hover:shadow-md transition-all cursor-pointer group flex justify-between gap-3 relative"
                   >
-                    <div className="relative h-40 w-full rounded-xl overflow-hidden bg-cyan-50 mb-3">
+                    <div className="flex-1 flex flex-col justify-between space-y-2">
+                      <div className="space-y-1">
+                        <span className="bg-[#00838F] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block">
+                          🔥 Popular
+                        </span>
+                        <h4 className="font-extrabold text-sm text-[#1A237E] group-hover:text-[#00838F] transition-colors leading-tight">
+                          {p.name}
+                        </h4>
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="font-extrabold text-base text-[#C2185B] block">
+                          ${p.price.toLocaleString('es-CL')} CLP
+                        </span>
+                        <span className="text-[10px] text-emerald-700 font-bold block">
+                          Envío Gratis
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="relative w-24 h-24 rounded-2xl overflow-hidden bg-cyan-50 shrink-0 border border-cyan-100">
                       <img
                         src={pImage}
                         alt={p.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       />
-                      <span className="absolute top-2 left-2 bg-[#00838F] text-white text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full">
-                        ❄️ Favorito Invierno
-                      </span>
-                    </div>
-
-                    <div className="space-y-1 text-left">
-                      <div className="flex items-center gap-1 text-xs text-amber-500 font-bold">
-                        <Star className="w-3.5 h-3.5 fill-current" />
-                        <span>{p.rating}</span>
-                      </div>
-                      <h4 className="font-bold text-sm text-[#1A237E] group-hover:text-[#00838F] transition-colors truncate">
-                        {p.name}
-                      </h4>
-                      <div className="flex items-center justify-between pt-1">
-                        <span className="font-extrabold text-base text-[#1A237E]">
-                          ${p.price.toLocaleString('es-CL')} CLP
-                        </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onAddToCart(p);
-                          }}
-                          className="bg-[#C2185B] hover:bg-[#8E24AA] text-white p-2 rounded-full shadow-xs cursor-pointer"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAddToCart(p);
+                        }}
+                        className="absolute bottom-1 right-1 bg-[#C2185B] hover:bg-[#8E24AA] text-white p-2 rounded-full shadow-md cursor-pointer transition-all"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 );
@@ -115,14 +117,14 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           </div>
         )}
 
-        {/* Main Product Cards Grid */}
+        {/* Uber Eats Clean Split-Card Product Items List */}
         <div className="space-y-6">
           <div className="flex items-center justify-between border-b border-cyan-200 pb-3">
             <h3 className="font-extrabold text-xl sm:text-2xl text-[#1A237E]">
-              {selectedCategory === 'todos' ? 'Colección de Ramos' : WINTER_FILTER_CHIPS.find(c => c.id === selectedCategory)?.label}
+              {selectedCategory === 'todos' ? 'Menú de Ramos & Flores' : WINTER_FILTER_CHIPS.find(c => c.id === selectedCategory)?.label}
             </h3>
             <span className="text-xs font-bold text-cyan-900/60">
-              {filteredProducts.length} productos
+              {filteredProducts.length} opciones
             </span>
           </div>
 
@@ -138,7 +140,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredProducts.map((product) => {
                 const isWishlisted = wishlistIds.includes(product.id);
                 const productImage = product.image || (product as any).images?.[0] || 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800';
@@ -146,47 +148,23 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                 return (
                   <div
                     key={product.id}
-                    className="bg-white rounded-2xl border border-cyan-100 overflow-hidden shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between group text-left relative"
+                    onClick={() => onQuickView(product)}
+                    className="bg-white rounded-2xl p-4 sm:p-5 border border-cyan-100 shadow-xs hover:shadow-md transition-all cursor-pointer group flex justify-between gap-4 text-left relative"
                   >
-                    {/* Media Header */}
-                    <div className="relative h-60 w-full bg-cyan-50 overflow-hidden">
-                      <img
-                        src={productImage}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-
-                      {/* Winter Badges */}
-                      <div className="absolute top-3 left-3 flex flex-col gap-1">
-                        <span className="bg-[#00695C] text-white text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full shadow-xs">
-                          ❄️ Despacho Gratis La Florida
-                        </span>
-                        <span className="bg-white/90 backdrop-blur-md text-[#1A237E] text-[9px] font-bold uppercase px-2.5 py-0.5 rounded-full border border-cyan-100">
-                          ⏰ 72h / Express
-                        </span>
-                      </div>
-
-                      {/* Wishlist */}
-                      <button
-                        onClick={() => onToggleWishlist(product)}
-                        className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center shadow-md transition-all cursor-pointer ${
-                          isWishlisted ? 'bg-[#C2185B] text-white' : 'bg-white/90 text-[#1A237E] hover:bg-[#C2185B] hover:text-white'
-                        }`}
-                      >
-                        <Heart className="w-4 h-4 fill-current" />
-                      </button>
-                    </div>
-
-                    {/* Card Content */}
-                    <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-1.5 text-xs text-amber-500 font-bold">
-                          <Star className="w-3.5 h-3.5 fill-current" />
-                          <span>{product.rating}</span>
-                          <span className="text-gray-400 font-normal">({product.reviewsCount})</span>
+                    {/* Item Text & Price Details (Left Side Uber Eats Style) */}
+                    <div className="flex-1 flex flex-col justify-between space-y-2">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-amber-500 flex items-center gap-1">
+                            <Star className="w-3.5 h-3.5 fill-current" />
+                            <span>{product.rating}</span>
+                          </span>
+                          <span className="bg-cyan-50 text-[#00838F] text-[9px] font-black uppercase px-2 py-0.5 rounded-full border border-cyan-200">
+                            ❄️ 72h / Express
+                          </span>
                         </div>
 
-                        <h4 className="font-extrabold text-lg text-[#1A237E] group-hover:text-[#00838F] transition-colors leading-snug">
+                        <h4 className="font-extrabold text-base sm:text-lg text-[#1A237E] group-hover:text-[#00838F] transition-colors leading-snug">
                           {product.name}
                         </h4>
 
@@ -195,32 +173,48 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                         </p>
                       </div>
 
-                      {/* Bottom Action Bar */}
-                      <div className="pt-3 border-t border-cyan-100 flex items-center justify-between">
+                      <div className="flex items-center justify-between pt-2">
                         <div>
-                          <span className="text-[10px] font-bold uppercase text-cyan-900/40 block">Precio Total</span>
-                          <span className="font-extrabold text-2xl text-[#C2185B]">
+                          <span className="font-extrabold text-xl text-[#C2185B] block">
                             ${product.price.toLocaleString('es-CL')} <span className="text-xs text-cyan-900/60 font-normal">CLP</span>
+                          </span>
+                          <span className="text-[10px] text-emerald-700 font-bold block">
+                            🎉 Envío Gratis La Florida
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => onQuickView(product)}
-                            className="bg-cyan-50 hover:bg-cyan-100 text-[#1A237E] text-xs font-bold px-3 py-2 rounded-full cursor-pointer border border-cyan-200"
-                          >
-                            Detalles
-                          </button>
-
-                          <button
-                            onClick={() => onAddToCart(product)}
-                            className="bg-[#C2185B] hover:bg-[#8E24AA] text-white font-extrabold text-xs px-4 py-2.5 rounded-full shadow-md flex items-center gap-1 cursor-pointer transform hover:scale-105"
-                          >
-                            <Plus className="w-4 h-4" />
-                            <span>Agregar</span>
-                          </button>
-                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleWishlist(product);
+                          }}
+                          className={`p-2 rounded-full border transition-all ${
+                            isWishlisted ? 'bg-[#C2185B] text-white border-[#C2185B]' : 'bg-gray-50 text-gray-400 hover:text-[#C2185B] border-gray-200'
+                          }`}
+                        >
+                          <Heart className="w-4 h-4 fill-current" />
+                        </button>
                       </div>
+                    </div>
+
+                    {/* Item Thumbnail & Plus Button (Right Side Uber Eats Style) */}
+                    <div className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden bg-cyan-50 shrink-0 border border-cyan-100">
+                      <img
+                        src={productImage}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAddToCart(product);
+                        }}
+                        className="absolute bottom-2 right-2 bg-[#C2185B] hover:bg-[#8E24AA] text-white p-2.5 rounded-full shadow-lg cursor-pointer transition-all transform hover:scale-110 flex items-center justify-center"
+                        title="Agregar al pedido"
+                      >
+                        <Plus className="w-5 h-5 stroke-[3]" />
+                      </button>
                     </div>
                   </div>
                 );
