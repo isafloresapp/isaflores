@@ -1,4 +1,4 @@
-import { Product, CartItem } from '../types';
+import { Product } from '../types';
 import { PRODUCTS as INITIAL_PRODUCTS } from '../data/products';
 import { supabase } from '../lib/supabase';
 
@@ -25,9 +25,9 @@ export interface CustomFlowerOption {
   iconSvg: string;
 }
 
-const DB_PRODUCTS_KEY = 'isaflores_db_products_v2';
-const DB_ORDERS_KEY = 'isaflores_db_orders_v2';
-const DB_CUSTOM_FLOWERS_KEY = 'isaflores_db_custom_flowers_v2';
+const DB_PRODUCTS_KEY = 'isaflores_db_products_v3';
+const DB_ORDERS_KEY = 'isaflores_db_orders_v3';
+const DB_CUSTOM_FLOWERS_KEY = 'isaflores_db_custom_flowers_v3';
 
 const INITIAL_CUSTOM_FLOWERS: CustomFlowerOption[] = [
   { id: 'girasol', name: 'Girasol Silvestre', colorName: 'Amarillo Girasol', colorHex: '#EAB308', pricePerStem: 1800, iconSvg: '🌻' },
@@ -37,56 +37,44 @@ const INITIAL_CUSTOM_FLOWERS: CustomFlowerOption[] = [
   { id: 'margarita', name: 'Margarita Silvestre', colorName: 'Blanco Puro', colorHex: '#FFFFFF', pricePerStem: 1300, iconSvg: '🌼' },
 ];
 
-const INITIAL_ORDERS: DbOrder[] = [
-  {
-    id: 'ORD-1001',
-    customerName: 'María José Pérez',
-    phone: '+56 9 1234 5678',
-    addressComuna: 'Av. Providencia 1234, Providencia',
-    productName: 'Ramo Coral Perenne (x1)',
-    total: 14990,
-    isExpress: false,
-    deliveryDate: '2026-08-14',
-    status: 'en_preparacion',
-    notes: 'Incluir dedicatoria "Feliz Aniversario"',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'ORD-1002',
-    customerName: 'Camila Rojas V.',
-    phone: '+56 9 8765 4321',
-    addressComuna: 'Vicuña Mackenna 7890, La Florida',
-    productName: 'Colección Girasoles Silvestres (x2)',
-    total: 19980,
-    isExpress: true,
-    deliveryDate: '2026-08-11',
-    status: 'pendiente',
-    notes: 'Despacho prioritario tarde',
-    createdAt: new Date().toISOString(),
-  },
-];
-
 class DatabaseService {
-  // PRODUCTS OPERATIONS WITH SUPABASE CLOUD SYNC
+  // 100% DIRECT BI-DIRECTIONAL SUPABASE CLOUD PRODUCTS SYNC
   async getProducts(): Promise<Product[]> {
     try {
       if (supabase) {
         const { data, error } = await supabase.from('products').select('*');
         if (!error && data && data.length > 0) {
-          this.saveProductsLocal(data);
-          return data;
+          const formattedProducts: Product[] = data.map((p) => ({
+            id: p.id,
+            name: p.name || 'Flor IsaFlores',
+            price: Number(p.price) || 14990,
+            category: p.category || 'ramos',
+            categoryLabel: p.category === 'ramos' ? 'Ramos Eternos' : p.category === 'girasoles' ? 'Girasoles' : 'Flores',
+            subcategory: 'General',
+            description: p.description || '',
+            fullDetails: p.description || '',
+            badge: p.badge || 'Destacado',
+            image: p.image || 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800',
+            images: [p.image],
+            bgTint: '#FDF0F5',
+            rating: Number(p.rating) || 5.0,
+            reviewsCount: 15,
+            tags: [p.category, 'flores eternas']
+          }));
+
+          this.saveProductsLocal(formattedProducts);
+          return formattedProducts;
         }
       }
     } catch (e) {
-      console.warn('Supabase cloud fetch note:', e);
+      console.warn('Supabase cloud fetch products note:', e);
     }
 
     try {
       const stored = localStorage.getItem(DB_PRODUCTS_KEY);
       if (stored) return JSON.parse(stored);
-    } catch (e) {
-      console.warn('Error fetching products from local DB:', e);
-    }
+    } catch (e) {}
+
     this.saveProductsLocal(INITIAL_PRODUCTS);
     return INITIAL_PRODUCTS;
   }
@@ -97,64 +85,88 @@ class DatabaseService {
     } catch (e) {}
   }
 
-  async saveProducts(products: Product[]): Promise<boolean> {
-    this.saveProductsLocal(products);
+  async saveProductCloud(product: Product): Promise<void> {
     try {
       if (supabase) {
-        await supabase.from('products').upsert(products);
+        const payload = {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          category: product.category,
+          description: product.description,
+          badge: product.badge || 'Nuevo',
+          image: product.image,
+          rating: product.rating || 5.0
+        };
+        await supabase.from('products').upsert(payload);
       }
-    } catch (e) {}
-    return true;
+    } catch (e) {
+      console.warn('Error saving product to Supabase cloud:', e);
+    }
   }
 
   async addProduct(product: Product): Promise<Product[]> {
+    await this.saveProductCloud(product);
     const products = await this.getProducts();
-    const updated = [product, ...products];
-    await this.saveProducts(updated);
+    const updated = [product, ...products.filter(p => p.id !== product.id)];
+    this.saveProductsLocal(updated);
     return updated;
   }
 
   async updateProduct(product: Product): Promise<Product[]> {
+    await this.saveProductCloud(product);
     const products = await this.getProducts();
     const updated = products.map((p) => (p.id === product.id ? product : p));
-    await this.saveProducts(updated);
+    this.saveProductsLocal(updated);
     return updated;
   }
 
   async deleteProduct(productId: string): Promise<Product[]> {
-    const products = await this.getProducts();
-    const updated = products.filter((p) => p.id !== productId);
-    await this.saveProducts(updated);
     try {
       if (supabase) {
         await supabase.from('products').delete().eq('id', productId);
       }
     } catch (e) {}
+
+    const products = await this.getProducts();
+    const updated = products.filter((p) => p.id !== productId);
+    this.saveProductsLocal(updated);
     return updated;
   }
 
-  // ORDERS OPERATIONS WITH SUPABASE CLOUD SYNC
+  // 100% DIRECT BI-DIRECTIONAL SUPABASE CLOUD ORDERS SYNC
   async getOrders(): Promise<DbOrder[]> {
     try {
       if (supabase) {
-        const { data, error } = await supabase.from('orders').select('*');
+        const { data, error } = await supabase.from('orders').select('*').order('createdAt', { ascending: false });
         if (!error && data && data.length > 0) {
-          this.saveOrdersLocal(data);
-          return data;
+          const formattedOrders: DbOrder[] = data.map((o) => ({
+            id: o.id,
+            customerName: o.customerName || 'Cliente',
+            phone: o.phone || '',
+            addressComuna: o.addressComuna || 'La Florida',
+            productName: o.productName || 'Flores IsaFlores',
+            total: Number(o.total) || 0,
+            isExpress: Boolean(o.isExpress),
+            deliveryDate: o.deliveryDate || new Date().toISOString(),
+            status: o.status || 'pendiente',
+            notes: o.notes || '',
+            createdAt: o.createdAt || new Date().toISOString()
+          }));
+          this.saveOrdersLocal(formattedOrders);
+          return formattedOrders;
         }
       }
     } catch (e) {
-      console.warn('Supabase orders fetch note:', e);
+      console.warn('Supabase cloud fetch orders note:', e);
     }
 
     try {
       const stored = localStorage.getItem(DB_ORDERS_KEY);
       if (stored) return JSON.parse(stored);
-    } catch (e) {
-      console.warn('Error fetching orders:', e);
-    }
-    this.saveOrdersLocal(INITIAL_ORDERS);
-    return INITIAL_ORDERS;
+    } catch (e) {}
+
+    return [];
   }
 
   private saveOrdersLocal(orders: DbOrder[]): void {
@@ -163,43 +175,51 @@ class DatabaseService {
     } catch (e) {}
   }
 
-  async saveOrders(orders: DbOrder[]): Promise<boolean> {
-    this.saveOrdersLocal(orders);
+  async saveOrderCloud(order: DbOrder): Promise<void> {
     try {
       if (supabase) {
-        await supabase.from('orders').upsert(orders);
+        await supabase.from('orders').upsert(order);
       }
-    } catch (e) {}
-    return true;
+    } catch (e) {
+      console.warn('Error saving order to Supabase cloud:', e);
+    }
   }
 
   async addOrder(orderData: Omit<DbOrder, 'id' | 'createdAt'>): Promise<DbOrder[]> {
-    const orders = await this.getOrders();
     const newOrder: DbOrder = {
       ...orderData,
       id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
       createdAt: new Date().toISOString(),
     };
-    const updated = [newOrder, ...orders];
-    await this.saveOrders(updated);
+
+    await this.saveOrderCloud(newOrder);
+    const orders = await this.getOrders();
+    const updated = [newOrder, ...orders.filter(o => o.id !== newOrder.id)];
+    this.saveOrdersLocal(updated);
     return updated;
   }
 
   async updateOrderStatus(orderId: string, status: DbOrder['status']): Promise<DbOrder[]> {
     const orders = await this.getOrders();
-    const updated = orders.map((o) => (o.id === orderId ? { ...o, status } : o));
-    await this.saveOrders(updated);
-    return updated;
+    const target = orders.find((o) => o.id === orderId);
+    if (target) {
+      const updatedOrder = { ...target, status };
+      await this.saveOrderCloud(updatedOrder);
+    }
+    const updatedList = orders.map((o) => (o.id === orderId ? { ...o, status } : o));
+    this.saveOrdersLocal(updatedList);
+    return updatedList;
   }
 
   async updateOrder(order: DbOrder): Promise<DbOrder[]> {
+    await this.saveOrderCloud(order);
     const orders = await this.getOrders();
     const updated = orders.map((o) => (o.id === order.id ? order : o));
-    await this.saveOrders(updated);
+    this.saveOrdersLocal(updated);
     return updated;
   }
 
-  // CUSTOM BOUQUET FLOWER OPTIONS OPERATIONS
+  // CUSTOM BOUQUET FLOWER OPTIONS
   async getCustomFlowers(): Promise<CustomFlowerOption[]> {
     try {
       const stored = localStorage.getItem(DB_CUSTOM_FLOWERS_KEY);
