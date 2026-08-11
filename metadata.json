@@ -1,0 +1,6 @@
+{
+  "name": "IsaFlores - Flores de Limpiapipas",
+  "description": "Tienda de ramos y arreglos florales artesanales hechos a mano con limpiapipas. Catálogo interactivo, creador de ramos personalizados y pedidos por WhatsApp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
