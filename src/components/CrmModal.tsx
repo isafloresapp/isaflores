@@ -18,18 +18,38 @@ const INITIAL_CATEGORIES = [
   { id: 'kits', label: 'Kits DIY', icon: '🎨' },
 ];
 
+const INITIAL_SUBCATEGORIES: Record<string, string[]> = {
+  ramos: ['Ramos de Autor', 'Ramos de Rosas', 'Ramos Mixtos'],
+  girasoles: ['Girasoles Individuales', 'Ramos de Girasol', 'Cajas de Girasoles'],
+  bodas: ['Ramos de Novia', 'Boutonnieres', 'Centros de Mesa'],
+  eventos: ['Decoración de Mesas', 'Recuerdos Corporativos', 'Arreglos de Escenario'],
+  regalos: ['Cajas de Regalo', 'Flores con Tarjeta', 'Ediciones Especiales'],
+  kits: ['Kits Principiantes', 'Kits Avanzados', 'Insumos de Limpiapipas'],
+};
+
+const AVAILABLE_COLORS = [
+  { name: 'Rosa Pastel', hex: '#ff96c5' },
+  { name: 'Fucsia Magenta', hex: '#f70071' },
+  { name: 'Coral Cálido', hex: '#ff5aa4' },
+  { name: 'Amarillo Girasol', hex: '#EAB308' },
+  { name: 'Blanco Puro', hex: '#FFFFFF' },
+  { name: 'Rojo Pasión', hex: '#EF4444' },
+  { name: 'Púrpura Elegante', hex: '#A855F7' },
+  { name: 'Verde Botánico', hex: '#22C55E' },
+];
+
 export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdateProductCatalog }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'custom_bouquet' | 'taxonomy' | 'permissions'>('orders');
 
-  // Database Connected Orders & Products State
+  // Database State
   const [orders, setOrders] = useState<DbOrder[]>([]);
   const [editingOrder, setEditingOrder] = useState<DbOrder | null>(null);
   const [productsList, setProductsList] = useState<Product[]>([]);
   const [isEditingProduct, setIsEditingProduct] = useState(false);
 
-  // Custom Bouquet Editor State (Flower Types, Colors, Quantities & Prices)
+  // Custom Bouquet Editor State
   const [customFlowers, setCustomFlowers] = useState<CustomFlowerOption[]>([]);
   const [editingFlowerId, setEditingFlowerId] = useState<string | null>(null);
   const [flName, setFlName] = useState('');
@@ -46,12 +66,18 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
   const [ordStatus, setOrdStatus] = useState<DbOrder['status']>('pendiente');
   const [ordNotes, setOrdNotes] = useState('');
 
-  // Taxonomies & Device Permissions State
+  // Taxonomies State
   const [categories, setCategories] = useState(INITIAL_CATEGORIES);
+  const [subcategoriesMap, setSubcategoriesMap] = useState(INITIAL_SUBCATEGORIES);
+  const [newCatName, setNewCatName] = useState('');
+  const [newSubcatName, setNewSubcatName] = useState('');
+  const [selectedTaxCategory, setSelectedTaxCategory] = useState('ramos');
+
+  // Device Permissions State
   const [cameraPermission, setCameraPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
   const [micPermission, setMicPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
 
-  // Product Form Fields
+  // Product Add / Edit Form Fields
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [price, setPrice] = useState<number>(14990);
@@ -59,6 +85,8 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
   const [subcategory, setSubcategory] = useState('Ramos de Autor');
   const [description, setDescription] = useState('');
   const [badge, setBadge] = useState('Nuevo');
+  
+  // Image Slots (Up to 3) with Phone Gallery / Camera Upload
   const [img1, setImg1] = useState('https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800');
   const [img2, setImg2] = useState('');
   const [img3, setImg3] = useState('');
@@ -66,6 +94,11 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
   const [sku, setSku] = useState('');
   const [metaTitle, setMetaTitle] = useState('');
   const [metaDescription, setMetaDescription] = useState('');
+
+  // Hidden File Inputs for Phone Gallery and Camera
+  const fileInputGalleryRef = useRef<HTMLInputElement>(null);
+  const fileInputCameraRef = useRef<HTMLInputElement>(null);
+  const [targetImgSlot, setTargetImgSlot] = useState<1 | 2 | 3>(1);
 
   useEffect(() => {
     if (isOpen) {
@@ -93,7 +126,130 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     }
   };
 
-  // Custom Bouquet Editor Handlers
+  // Image File Upload Handler
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64Url = reader.result as string;
+        if (targetImgSlot === 1) setImg1(base64Url);
+        else if (targetImgSlot === 2) setImg2(base64Url);
+        else if (targetImgSlot === 3) setImg3(base64Url);
+        alert(`¡Foto cargada desde la Galería/Cámara en el espacio ${targetImgSlot}!`);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const generateAutoFields = (productName: string, desc: string) => {
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    const newSku = `ISA-${productName.slice(0, 3).toUpperCase()}-${randomNum}`;
+    const title = `${productName} | Flores Eternas IsaFlores Chile`;
+    const metaDesc = `${desc || productName} - Hecho a mano en Chile con limpiapipas y goma EVA. Despacho gratis en La Florida.`;
+
+    setSku(newSku);
+    setMetaTitle(title);
+    setMetaDescription(metaDesc);
+  };
+
+  const handleOpenAddProduct = () => {
+    setEditingId(null);
+    setName('');
+    setPrice(14990);
+    setCategory(categories[0]?.id || 'ramos');
+    setSubcategory(subcategoriesMap[categories[0]?.id || 'ramos']?.[0] || 'Ramos de Autor');
+    setDescription('');
+    setBadge('Nuevo');
+    setImg1('https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800');
+    setImg2('');
+    setImg3('');
+    setSelectedColors(['Rosa Pastel']);
+    generateAutoFields('Ramo Nuevo', 'Hermoso ramo hecho a mano.');
+    setIsEditingProduct(true);
+  };
+
+  const handleOpenEditProduct = (prod: Product) => {
+    setEditingId(prod.id);
+    setName(prod.name);
+    setPrice(prod.price);
+    setCategory(prod.category || 'ramos');
+    setSubcategory((prod as any).subcategory || 'Ramos de Autor');
+    setDescription(prod.description);
+    setBadge(prod.badge || 'Destacado');
+    setImg1(prod.image || '');
+    setImg2((prod as any).images?.[1] || '');
+    setImg3((prod as any).images?.[2] || '');
+    setSelectedColors((prod as any).colors || ['Fucsia Magenta']);
+    
+    setSku((prod as any).sku || `ISA-${prod.id.slice(0, 4).toUpperCase()}-2026`);
+    setMetaTitle((prod as any).metaTitle || `${prod.name} | IsaFlores Chile`);
+    setMetaDescription((prod as any).metaDescription || prod.description);
+
+    setIsEditingProduct(true);
+  };
+
+  const handleSaveProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const imageArray = [img1, img2, img3].filter(Boolean);
+
+    const updatedProduct: any = {
+      id: editingId || `prod-${Date.now()}`,
+      name,
+      price,
+      category,
+      categoryLabel: categories.find((c) => c.id === category)?.label || 'Flores',
+      subcategory,
+      description,
+      fullDetails: `${description}\n\n• SKU: ${sku}\n• Categoría: ${category} / ${subcategory}\n• Colores disponibles: ${selectedColors.join(', ')}`,
+      badge,
+      image: img1 || 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800',
+      images: imageArray,
+      bgTint: '#FDF0F5',
+      rating: 5.0,
+      reviewsCount: 1,
+      tags: [category, subcategory, ...selectedColors, 'flores eternas'],
+      sku,
+      metaTitle,
+      metaDescription,
+      colors: selectedColors
+    };
+
+    let newProducts: Product[];
+    if (editingId) {
+      newProducts = await db.updateProduct(updatedProduct);
+    } else {
+      newProducts = await db.addProduct(updatedProduct);
+    }
+
+    setProductsList(newProducts);
+    if (onUpdateProductCatalog) {
+      onUpdateProductCatalog(newProducts);
+    }
+
+    setIsEditingProduct(false);
+    alert(`¡Producto "${name}" guardado en la Base de Datos con éxito!`);
+  };
+
+  const handleDeleteProduct = async (prodId: string) => {
+    if (confirm('¿Eliminar este producto de la Base de Datos?')) {
+      const newProducts = await db.deleteProduct(prodId);
+      setProductsList(newProducts);
+      if (onUpdateProductCatalog) {
+        onUpdateProductCatalog(newProducts);
+      }
+    }
+  };
+
+  const toggleColorSelect = (colorName: string) => {
+    setSelectedColors((prev) =>
+      prev.includes(colorName)
+        ? prev.filter((c) => c !== colorName)
+        : [...prev, colorName]
+    );
+  };
+
+  // Custom Bouquet Handlers
   const handleOpenAddFlowerOption = () => {
     setEditingFlowerId(null);
     setFlName('');
@@ -147,7 +303,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     }
   };
 
-  // Database Order Status Update
+  // Order Status Handler
   const handleStatusChange = async (orderId: string, newStatus: DbOrder['status']) => {
     const updated = await db.updateOrderStatus(orderId, newStatus);
     setOrders(updated);
@@ -173,48 +329,31 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     alert(`¡Pedido ${editingOrder.id} guardado en la Base de Datos!`);
   };
 
-  const handleSaveProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const imageArray = [img1, img2, img3].filter(Boolean);
+  const handleAddCategory = () => {
+    if (!newCatName.trim()) return;
+    const catId = newCatName.toLowerCase().replace(/\s+/g, '-');
+    setCategories((prev) => [...prev, { id: catId, label: newCatName, icon: '🌸' }]);
+    setSubcategoriesMap((prev) => ({ ...prev, [catId]: ['General'] }));
+    setNewCatName('');
+    alert(`¡Categoría "${newCatName}" creada con éxito!`);
+  };
 
-    const updatedProduct: any = {
-      id: editingId || `prod-${Date.now()}`,
-      name,
-      price,
-      category,
-      categoryLabel: categories.find((c) => c.id === category)?.label || 'Flores',
-      subcategory,
-      description,
-      badge,
-      image: img1 || 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800',
-      images: imageArray,
-      bgTint: '#FDF0F5',
-      rating: 5.0,
-      reviewsCount: 1,
-      sku,
-      metaTitle,
-      metaDescription,
-      colors: selectedColors
-    };
-
-    let newProducts: Product[];
-    if (editingId) {
-      newProducts = await db.updateProduct(updatedProduct);
-    } else {
-      newProducts = await db.addProduct(updatedProduct);
-    }
-
-    setProductsList(newProducts);
-    if (onUpdateProductCatalog) {
-      onUpdateProductCatalog(newProducts);
-    }
-
-    setIsEditingProduct(false);
-    alert(`¡Producto "${name}" guardado!`);
+  const handleAddSubcategory = () => {
+    if (!newSubcatName.trim()) return;
+    setSubcategoriesMap((prev) => ({
+      ...prev,
+      [selectedTaxCategory]: [...(prev[selectedTaxCategory] || []), newSubcatName]
+    }));
+    setNewSubcatName('');
+    alert(`¡Subcategoría agregada a "${selectedTaxCategory}"!`);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-dropdown">
+      {/* Hidden File Inputs for Phone Gallery and Camera */}
+      <input type="file" ref={fileInputGalleryRef} accept="image/*" onChange={handleFileUpload} className="hidden" />
+      <input type="file" ref={fileInputCameraRef} accept="image/*" capture="environment" onChange={handleFileUpload} className="hidden" />
+
       <div className="bg-[#2B051C] border-2 border-[#f70071]/40 rounded-3xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl text-white text-left relative">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-[#2B051C]/95 backdrop-blur-xl p-6 border-b border-white/20 flex items-center justify-between">
@@ -227,7 +366,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                 Base de Datos & Editor CRM IsaFlores
               </h3>
               <span className="text-[10px] font-black uppercase tracking-widest text-[#25D366] block">
-                Editor de Productos, Cotizaciones & Creador "Diseña tu Ramo"
+                Catálogo, Subir Fotos Celular, Categorías Desplegables & Cotizaciones
               </span>
             </div>
           </div>
@@ -266,7 +405,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
             {/* Navigation Tabs */}
             <div className="flex flex-wrap items-center gap-3 border-b border-white/20 pb-4">
               <button
-                onClick={() => setActiveTab('orders')}
+                onClick={() => { setActiveTab('orders'); setIsEditingProduct(false); }}
                 className={`px-5 py-2.5 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
                   activeTab === 'orders' ? 'bg-[#f70071] text-white shadow-lg' : 'bg-white/10 text-white/70'
                 }`}
@@ -280,17 +419,27 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                   activeTab === 'products' ? 'bg-[#f70071] text-white shadow-lg' : 'bg-white/10 text-white/70'
                 }`}
               >
-                Catálogo Productos ({productsList.length})
+                Gestor de Productos ({productsList.length})
               </button>
 
               <button
-                onClick={() => setActiveTab('custom_bouquet')}
+                onClick={() => { setActiveTab('custom_bouquet'); setIsEditingProduct(false); }}
                 className={`flex items-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
                   activeTab === 'custom_bouquet' ? 'bg-[#25D366] text-white shadow-lg' : 'bg-white/10 text-white/70'
                 }`}
               >
                 <Palette className="w-4 h-4" />
-                <span>Editor "Diseña tu Ramo" ({customFlowers.length})</span>
+                <span>Editor Diseña tu Ramo ({customFlowers.length})</span>
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('taxonomy'); setIsEditingProduct(false); }}
+                className={`flex items-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
+                  activeTab === 'taxonomy' ? 'bg-[#f70071] text-white shadow-lg' : 'bg-white/10 text-white/70'
+                }`}
+              >
+                <Sliders className="w-4 h-4" />
+                <span>Categorías & Metadatos</span>
               </button>
             </div>
 
@@ -304,8 +453,9 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                       <tr className="border-b border-white/20 text-[10px] font-black uppercase text-[#ff96c5]">
                         <th className="pb-3">ID / Cliente</th>
                         <th className="pb-3">Teléfono</th>
-                        <th className="pb-3">Monto</th>
-                        <th className="pb-3">Estado BD</th>
+                        <th className="pb-3">Monto Total</th>
+                        <th className="pb-3">Estado BD Desplegable</th>
+                        <th className="pb-3 text-right">Acción</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/10 text-xs font-bold">
@@ -318,12 +468,18 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                             <select
                               value={o.status}
                               onChange={(e) => handleStatusChange(o.id, e.target.value as any)}
-                              className="bg-[#2B051C] text-xs border border-white/30 rounded-xl px-2 py-1"
+                              className="bg-[#2B051C] text-xs font-bold border border-white/30 rounded-xl px-2 py-1"
                             >
                               <option value="pendiente">⏳ Pendiente</option>
                               <option value="en_preparacion">⚙️ En Taller</option>
                               <option value="despachado">✓ Despachado</option>
+                              <option value="cancelado">❌ Cancelado</option>
                             </select>
+                          </td>
+                          <td className="py-3 text-right">
+                            <a href={`https://wa.me/${o.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white text-[10px] font-black px-3 py-1.5 rounded-full">
+                              WhatsApp
+                            </a>
                           </td>
                         </tr>
                       ))}
@@ -333,168 +489,327 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
               </div>
             )}
 
-            {/* TAB 2: PRODUCTS */}
+            {/* TAB 2: PRODUCTS MANAGER (Add / Edit Form with Phone Gallery Upload & Category Select Dropdown) */}
             {activeTab === 'products' && (
-              <div className="space-y-4">
-                <h4 className="font-syne text-xl font-black text-white">Catálogo General</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {productsList.map((prod) => (
-                    <div key={prod.id} className="bg-[#42082B] p-4 rounded-2xl border border-white/20">
-                      <h5 className="font-syne text-sm font-bold text-white truncate">{prod.name}</h5>
-                      <span className="text-xs font-black text-[#ffc0dc]">${prod.price.toLocaleString('es-CL')} CLP</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* TAB 3: CUSTOM BOUQUET STUDIO EDITOR (Types, Colors, Quantities & Prices) */}
-            {activeTab === 'custom_bouquet' && (
               <div className="space-y-6">
-                <div className="flex items-center justify-between border-b border-white/20 pb-4">
-                  <div>
-                    <h4 className="font-syne text-xl font-black text-white">
-                      Editor de Variedades, Colores & Precios por Tallo
-                    </h4>
-                    <p className="text-xs text-white/80 font-medium">
-                      Configura las flores que los clientes pueden elegir en la sección "Diseña tu Ramo".
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={handleOpenAddFlowerOption}
-                    className="bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs uppercase px-5 py-2.5 rounded-full flex items-center gap-2 shadow-lg cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Agregar Nueva Flor</span>
-                  </button>
-                </div>
-
-                {/* Form to Add / Edit Flower Option */}
-                <form onSubmit={handleSaveFlowerOption} className="bg-[#42082B] p-5 rounded-3xl border border-white/20 space-y-4">
-                  <span className="text-xs font-black uppercase text-[#ff96c5] block">
-                    {editingFlowerId ? 'Editar Flor / Tallo' : '✨ Agregar Variedad de Flor'}
-                  </span>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-[11px] font-bold text-white block">Nombre de la Flor *</label>
-                      <input
-                        type="text"
-                        required
-                        value={flName}
-                        onChange={(e) => setFlName(e.target.value)}
-                        placeholder="Ej: Tulipán Holandés"
-                        className="w-full bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-bold text-white block">Nombre del Color *</label>
-                      <input
-                        type="text"
-                        required
-                        value={flColorName}
-                        onChange={(e) => setFlColorName(e.target.value)}
-                        placeholder="Ej: Rosa Pastel"
-                        className="w-full bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-bold text-white block">Color Hex (Tono) *</label>
-                      <div className="flex gap-2 items-center">
-                        <input
-                          type="color"
-                          value={flColorHex}
-                          onChange={(e) => setFlColorHex(e.target.value)}
-                          className="w-10 h-9 rounded-xl border border-white/30 bg-transparent cursor-pointer"
-                        />
-                        <input
-                          type="text"
-                          value={flColorHex}
-                          onChange={(e) => setFlColorHex(e.target.value)}
-                          className="flex-1 bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-bold text-white block">Precio por Tallo ($ CLP) *</label>
-                      <input
-                        type="number"
-                        required
-                        value={flPrice}
-                        onChange={(e) => setFlPrice(Number(e.target.value))}
-                        className="w-full bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-bold text-white block">Icono / Emoji *</label>
-                      <input
-                        type="text"
-                        value={flIcon}
-                        onChange={(e) => setFlIcon(e.target.value)}
-                        placeholder="Ej: 🌸 o 🌻"
-                        className="w-full bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none text-center"
-                      />
-                    </div>
-
-                    <div className="flex items-end">
+                {!isEditingProduct ? (
+                  /* Products List & New Product Button */
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-syne text-xl font-black text-white">Catálogo de Productos ({productsList.length})</h4>
                       <button
-                        type="submit"
-                        className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs uppercase py-2.5 rounded-xl shadow-lg cursor-pointer"
+                        onClick={handleOpenAddProduct}
+                        className="bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs uppercase tracking-wider px-5 py-2.5 rounded-full flex items-center gap-2 shadow-lg cursor-pointer"
                       >
-                        {editingFlowerId ? 'Actualizar Flor' : 'Guardar Flor en BD'}
+                        <Plus className="w-4 h-4" />
+                        <span>Nuevo Producto (+Subir Foto)</span>
                       </button>
                     </div>
-                  </div>
-                </form>
 
-                {/* Table of Custom Flowers */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[600px]">
-                    <thead>
-                      <tr className="border-b border-white/20 text-[10px] font-black uppercase text-[#ff96c5]">
-                        <th className="pb-3">Flor & Icono</th>
-                        <th className="pb-3">Color</th>
-                        <th className="pb-3">Precio por Tallo</th>
-                        <th className="pb-3 text-right">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/10 text-xs font-bold">
-                      {customFlowers.map((fl) => (
-                        <tr key={fl.id}>
-                          <td className="py-3 flex items-center gap-2">
-                            <span className="text-xl">{fl.iconSvg}</span>
-                            <span className="text-white font-extrabold">{fl.name}</span>
-                          </td>
-                          <td className="py-3">
-                            <span className="inline-flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-full text-xs">
-                              <span className="w-2.5 h-2.5 rounded-full border border-white" style={{ backgroundColor: fl.colorHex }} />
-                              <span>{fl.colorName}</span>
-                            </span>
-                          </td>
-                          <td className="py-3 text-[#ffc0dc] font-syne">${fl.pricePerStem.toLocaleString('es-CL')} CLP</td>
-                          <td className="py-3 text-right space-x-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {productsList.map((prod) => (
+                        <div key={prod.id} className="bg-[#42082B] p-4 rounded-2xl border border-white/20 flex flex-col justify-between space-y-3">
+                          <div className="flex gap-3">
+                            <img src={prod.image} alt={prod.name} className="w-16 h-16 object-cover rounded-xl border border-white/20 shrink-0" />
+                            <div className="overflow-hidden">
+                              <span className="text-[9px] font-black text-[#ff96c5] block uppercase">{prod.categoryLabel || prod.category}</span>
+                              <h5 className="font-syne text-sm font-bold text-white truncate">{prod.name}</h5>
+                              <span className="text-xs font-black text-[#ffc0dc]">${prod.price.toLocaleString('es-CL')} CLP</span>
+                              <span className="text-[9px] text-white/50 block">SKU: {(prod as any).sku || 'ISA-AUTO-2026'}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 pt-2 border-t border-white/10">
                             <button
-                              onClick={() => handleEditFlowerOption(fl)}
-                              className="bg-white/10 text-white text-[10px] font-black px-3 py-1.5 rounded-full"
+                              onClick={() => handleOpenEditProduct(prod)}
+                              className="flex-1 bg-white/10 hover:bg-[#f70071] text-white text-[10px] font-black py-2 rounded-xl flex items-center justify-center gap-1 cursor-pointer transition-colors"
                             >
-                              Editar
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>Editar</span>
                             </button>
                             <button
-                              onClick={() => handleDeleteFlowerOption(fl.id)}
-                              className="bg-red-500/20 text-white text-[10px] font-black p-1.5 rounded-full"
+                              onClick={() => handleDeleteProduct(prod.id)}
+                              className="bg-red-500/20 hover:bg-red-600 text-white text-[10px] font-black p-2 rounded-xl cursor-pointer transition-colors"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
-                          </td>
-                        </tr>
+                          </div>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </div>
+                ) : (
+                  /* Add / Edit Product Form */
+                  <form onSubmit={handleSaveProduct} className="bg-[#42082B] p-6 rounded-3xl border border-white/20 space-y-6">
+                    <div className="flex items-center justify-between border-b border-white/20 pb-4">
+                      <h4 className="font-syne text-xl font-black text-white">
+                        {editingId ? `Editar Producto: ${name}` : '✨ Crear Nuevo Producto (+Subir Foto desde Galería)'}
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingProduct(false)}
+                        className="text-xs font-black text-white/70 hover:text-white"
+                      >
+                        ✕ Cancelar
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Product Name */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-white">Nombre del Producto *</label>
+                        <input
+                          type="text"
+                          required
+                          value={name}
+                          onChange={(e) => {
+                            setName(e.target.value);
+                            if (!editingId) generateAutoFields(e.target.value, description);
+                          }}
+                          placeholder="Ej: Ramo de Rosas Rojas y Girasol"
+                          className="w-full bg-white/10 border border-white/30 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none focus:border-[#f70071]"
+                        />
+                      </div>
+
+                      {/* Price */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-white">Precio ($ CLP) *</label>
+                        <input
+                          type="number"
+                          required
+                          value={price}
+                          onChange={(e) => setPrice(Number(e.target.value))}
+                          className="w-full bg-white/10 border border-white/30 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none focus:border-[#f70071]"
+                        />
+                      </div>
+
+                      {/* Category Selection Dropdown <select> */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-[#ff96c5] flex items-center gap-1.5">
+                          <Sliders className="w-3.5 h-3.5" />
+                          <span>Categoría Principal (Menú Desplegable) *</span>
+                        </label>
+                        <select
+                          value={category}
+                          onChange={(e) => {
+                            const newCat = e.target.value;
+                            setCategory(newCat);
+                            setSubcategory(subcategoriesMap[newCat]?.[0] || 'General');
+                          }}
+                          className="w-full bg-[#2B051C] border border-white/30 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none focus:border-[#f70071]"
+                        >
+                          {categories.map((c) => (
+                            <option key={c.id} value={c.id} className="bg-[#2B051C] text-white">
+                              {c.icon} {c.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Subcategory Selection Dropdown <select> */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-[#ff96c5] flex items-center gap-1.5">
+                          <Tag className="w-3.5 h-3.5" />
+                          <span>Subcategoría (Menú Desplegable) *</span>
+                        </label>
+                        <select
+                          value={subcategory}
+                          onChange={(e) => setSubcategory(e.target.value)}
+                          className="w-full bg-[#2B051C] border border-white/30 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none focus:border-[#f70071]"
+                        >
+                          {(subcategoriesMap[category] || ['General']).map((sub) => (
+                            <option key={sub} value={sub} className="bg-[#2B051C] text-white">
+                              • {sub}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Image Upload Box with Phone Gallery & Camera Upload Buttons */}
+                      <div className="sm:col-span-2 space-y-3 bg-[#2B051C] p-4 rounded-2xl border border-white/20">
+                        <span className="text-xs font-black text-[#ff96c5] flex items-center gap-1.5">
+                          <Image className="w-4 h-4" />
+                          <span>Subir Fotos desde la Galería del Celular o Cámara (Hasta 3 Fotos)</span>
+                        </span>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          {[1, 2, 3].map((slotNum) => {
+                            const imgVal = slotNum === 1 ? img1 : slotNum === 2 ? img2 : img3;
+                            return (
+                              <div key={slotNum} className="space-y-2 bg-white/5 p-3 rounded-xl border border-white/10">
+                                <span className="text-[10px] font-bold text-white block">Foto {slotNum}</span>
+                                {imgVal ? (
+                                  <img src={imgVal} alt={`Foto ${slotNum}`} className="h-20 w-full object-cover rounded-lg border border-white/20" />
+                                ) : (
+                                  <div className="h-20 w-full rounded-lg border border-dashed border-white/20 flex items-center justify-center text-white/40 text-[10px]">
+                                    Sin foto
+                                  </div>
+                                )}
+                                
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setTargetImgSlot(slotNum as any);
+                                      fileInputGalleryRef.current?.click();
+                                    }}
+                                    className="flex-1 bg-[#f70071] hover:bg-[#ff1b82] text-white text-[9px] font-black py-1.5 rounded-lg flex items-center justify-center gap-1 cursor-pointer"
+                                  >
+                                    <Upload className="w-3 h-3" />
+                                    <span>Galería</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setTargetImgSlot(slotNum as any);
+                                      fileInputCameraRef.current?.click();
+                                    }}
+                                    className="flex-1 bg-[#25D366] hover:bg-[#128C7E] text-white text-[9px] font-black py-1.5 rounded-lg flex items-center justify-center gap-1 cursor-pointer"
+                                  >
+                                    <Camera className="w-3 h-3" />
+                                    <span>Cámara</span>
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Color Selector */}
+                      <div className="sm:col-span-2 space-y-1.5">
+                        <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <Tag className="w-4 h-4 text-[#ff96c5]" />
+                          <span>Colores Disponibles</span>
+                        </label>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {AVAILABLE_COLORS.map((c) => {
+                            const isSelected = selectedColors.includes(c.name);
+                            return (
+                              <button
+                                key={c.name}
+                                type="button"
+                                onClick={() => toggleColorSelect(c.name)}
+                                className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                  isSelected ? 'bg-[#f70071] text-white border-2 border-white' : 'bg-white/10 text-white/70 hover:bg-white/20'
+                                }`}
+                              >
+                                <span className="w-2.5 h-2.5 rounded-full border border-white" style={{ backgroundColor: c.hex }} />
+                                <span>{c.name}</span>
+                                {isSelected && <Check className="w-3 h-3 text-white" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <div className="sm:col-span-2 space-y-1.5">
+                        <label className="text-xs font-bold text-white">Descripción del Producto</label>
+                        <textarea
+                          rows={2}
+                          value={description}
+                          onChange={(e) => {
+                            setDescription(e.target.value);
+                            if (!editingId) generateAutoFields(name, e.target.value);
+                          }}
+                          placeholder="Detalles de flores, tipo de papel de regalo..."
+                          className="w-full bg-white/10 border border-white/30 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                        />
+                      </div>
+
+                      {/* Generated Metadata Box */}
+                      <div className="sm:col-span-2 bg-[#2B051C] p-4 rounded-2xl border border-[#25D366]/40 space-y-2">
+                        <span className="text-xs font-black text-[#25D366] flex items-center gap-1.5">
+                          <Code className="w-4 h-4" />
+                          <span>SKU & Metadatos Automáticos Generados</span>
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs font-bold text-white">
+                          <div>
+                            <span className="text-[10px] text-white/60 block">SKU:</span>
+                            <span className="text-[#ff96c5] font-syne">{sku}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-white/60 block">Título SEO:</span>
+                            <span className="truncate block">{metaTitle}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-white/60 block">Meta Descripción:</span>
+                            <span className="truncate block">{metaDescription}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingProduct(false)}
+                        className="px-6 py-3 rounded-full bg-white/10 text-white font-bold text-xs uppercase"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-8 py-3 rounded-full bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs uppercase shadow-xl cursor-pointer"
+                      >
+                        Guardar Producto en BD
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
+
+            {/* TAB 3: CUSTOM BOUQUET EDITOR */}
+            {activeTab === 'custom_bouquet' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between border-b border-white/20 pb-4">
+                  <h4 className="font-syne text-xl font-black text-white">
+                    Editor Diseña tu Ramo (Variedades, Colores & Precios)
+                  </h4>
+                  <button
+                    onClick={handleOpenAddFlowerOption}
+                    className="bg-[#25D366] text-white font-black text-xs uppercase px-4 py-2 rounded-full"
+                  >
+                    + Agregar Flor
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveFlowerOption} className="bg-[#42082B] p-5 rounded-3xl border border-white/20 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <input type="text" required value={flName} onChange={(e) => setFlName(e.target.value)} placeholder="Nombre Flor" className="bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-bold text-white" />
+                    <input type="text" required value={flColorName} onChange={(e) => setFlColorName(e.target.value)} placeholder="Nombre Color" className="bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-bold text-white" />
+                    <input type="number" required value={flPrice} onChange={(e) => setFlPrice(Number(e.target.value))} placeholder="Precio por Tallo" className="bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-bold text-white" />
+                  </div>
+                  <button type="submit" className="bg-[#25D366] text-white font-black text-xs uppercase px-6 py-2.5 rounded-xl">
+                    Guardar Flor en BD
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* TAB 4: TAXONOMY EDITOR */}
+            {activeTab === 'taxonomy' && (
+              <div className="space-y-6">
+                <h4 className="font-syne text-xl font-black text-white">Editor de Categorías & Subcategorías</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="bg-[#42082B] p-5 rounded-2xl border border-white/20 space-y-3">
+                    <span className="text-xs font-black uppercase text-[#ff96c5] block">Crear Categoría Principal</span>
+                    <div className="flex gap-2">
+                      <input type="text" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="Nombre Categoría" className="flex-1 bg-white/10 border border-white/30 rounded-xl px-4 py-2 text-xs font-bold text-white" />
+                      <button onClick={handleAddCategory} className="bg-[#f70071] text-white font-black text-xs px-4 py-2 rounded-xl">Crear</button>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#42082B] p-5 rounded-2xl border border-white/20 space-y-3">
+                    <span className="text-xs font-black uppercase text-[#ffc0dc] block">Agregar Subcategoría</span>
+                    <div className="flex gap-2">
+                      <input type="text" value={newSubcatName} onChange={(e) => setNewSubcatName(e.target.value)} placeholder="Nombre Subcategoría" className="flex-1 bg-white/10 border border-white/30 rounded-xl px-4 py-2 text-xs font-bold text-white" />
+                      <button onClick={handleAddSubcategory} className="bg-[#25D366] text-white font-black text-xs px-4 py-2 rounded-xl">Agregar</button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
