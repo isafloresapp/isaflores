@@ -1,5 +1,6 @@
 import { Product, CartItem } from '../types';
 import { PRODUCTS as INITIAL_PRODUCTS } from '../data/products';
+import { supabase } from '../lib/supabase';
 
 export interface DbOrder {
   id: string;
@@ -66,25 +67,44 @@ const INITIAL_ORDERS: DbOrder[] = [
 ];
 
 class DatabaseService {
-  // PRODUCTS OPERATIONS
+  // PRODUCTS OPERATIONS WITH SUPABASE CLOUD SYNC
   async getProducts(): Promise<Product[]> {
+    try {
+      if (supabase) {
+        const { data, error } = await supabase.from('products').select('*');
+        if (!error && data && data.length > 0) {
+          this.saveProductsLocal(data);
+          return data;
+        }
+      }
+    } catch (e) {
+      console.warn('Supabase cloud fetch note:', e);
+    }
+
     try {
       const stored = localStorage.getItem(DB_PRODUCTS_KEY);
       if (stored) return JSON.parse(stored);
     } catch (e) {
-      console.warn('Error fetching products:', e);
+      console.warn('Error fetching products from local DB:', e);
     }
-    this.saveProducts(INITIAL_PRODUCTS);
+    this.saveProductsLocal(INITIAL_PRODUCTS);
     return INITIAL_PRODUCTS;
   }
 
-  async saveProducts(products: Product[]): Promise<boolean> {
+  private saveProductsLocal(products: Product[]): void {
     try {
       localStorage.setItem(DB_PRODUCTS_KEY, JSON.stringify(products));
-      return true;
-    } catch (e) {
-      return false;
-    }
+    } catch (e) {}
+  }
+
+  async saveProducts(products: Product[]): Promise<boolean> {
+    this.saveProductsLocal(products);
+    try {
+      if (supabase) {
+        await supabase.from('products').upsert(products);
+      }
+    } catch (e) {}
+    return true;
   }
 
   async addProduct(product: Product): Promise<Product[]> {
@@ -105,28 +125,52 @@ class DatabaseService {
     const products = await this.getProducts();
     const updated = products.filter((p) => p.id !== productId);
     await this.saveProducts(updated);
+    try {
+      if (supabase) {
+        await supabase.from('products').delete().eq('id', productId);
+      }
+    } catch (e) {}
     return updated;
   }
 
-  // ORDERS OPERATIONS
+  // ORDERS OPERATIONS WITH SUPABASE CLOUD SYNC
   async getOrders(): Promise<DbOrder[]> {
+    try {
+      if (supabase) {
+        const { data, error } = await supabase.from('orders').select('*');
+        if (!error && data && data.length > 0) {
+          this.saveOrdersLocal(data);
+          return data;
+        }
+      }
+    } catch (e) {
+      console.warn('Supabase orders fetch note:', e);
+    }
+
     try {
       const stored = localStorage.getItem(DB_ORDERS_KEY);
       if (stored) return JSON.parse(stored);
     } catch (e) {
       console.warn('Error fetching orders:', e);
     }
-    this.saveOrders(INITIAL_ORDERS);
+    this.saveOrdersLocal(INITIAL_ORDERS);
     return INITIAL_ORDERS;
   }
 
-  async saveOrders(orders: DbOrder[]): Promise<boolean> {
+  private saveOrdersLocal(orders: DbOrder[]): void {
     try {
       localStorage.setItem(DB_ORDERS_KEY, JSON.stringify(orders));
-      return true;
-    } catch (e) {
-      return false;
-    }
+    } catch (e) {}
+  }
+
+  async saveOrders(orders: DbOrder[]): Promise<boolean> {
+    this.saveOrdersLocal(orders);
+    try {
+      if (supabase) {
+        await supabase.from('orders').upsert(orders);
+      }
+    } catch (e) {}
+    return true;
   }
 
   async addOrder(orderData: Omit<DbOrder, 'id' | 'createdAt'>): Promise<DbOrder[]> {
@@ -160,9 +204,7 @@ class DatabaseService {
     try {
       const stored = localStorage.getItem(DB_CUSTOM_FLOWERS_KEY);
       if (stored) return JSON.parse(stored);
-    } catch (e) {
-      console.warn('Error fetching custom flowers:', e);
-    }
+    } catch (e) {}
     this.saveCustomFlowers(INITIAL_CUSTOM_FLOWERS);
     return INITIAL_CUSTOM_FLOWERS;
   }
