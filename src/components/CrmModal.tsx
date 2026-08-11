@@ -73,10 +73,6 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
   const [newSubcatName, setNewSubcatName] = useState('');
   const [selectedTaxCategory, setSelectedTaxCategory] = useState('ramos');
 
-  // Device Permissions State
-  const [cameraPermission, setCameraPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
-  const [micPermission, setMicPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
-
   // Product Add / Edit Form Fields
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -349,24 +345,24 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-dropdown">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-dropdown">
       {/* Hidden File Inputs for Phone Gallery and Camera */}
       <input type="file" ref={fileInputGalleryRef} accept="image/*" onChange={handleFileUpload} className="hidden" />
       <input type="file" ref={fileInputCameraRef} accept="image/*" capture="environment" onChange={handleFileUpload} className="hidden" />
 
-      <div className="bg-[#2B051C] border-2 border-[#f70071]/40 rounded-3xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl text-white text-left relative">
+      <div className="bg-[#2B051C] border-2 border-[#f70071]/40 rounded-3xl max-w-5xl w-full max-h-[95vh] overflow-y-auto shadow-2xl text-white text-left relative">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-[#2B051C]/95 backdrop-blur-xl p-6 border-b border-white/20 flex items-center justify-between">
+        <div className="sticky top-0 z-20 bg-[#2B051C]/95 backdrop-blur-xl p-4 sm:p-6 border-b border-white/20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#f70071] text-white flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 rounded-2xl bg-[#f70071] text-white flex items-center justify-center shadow-lg shrink-0">
               <ShieldCheck className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="font-syne text-2xl font-black text-white">
+              <h3 className="font-syne text-xl sm:text-2xl font-black text-white">
                 Base de Datos & Editor CRM IsaFlores
               </h3>
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#25D366] block">
-                Catálogo, Subir Fotos Celular, Categorías Desplegables & Cotizaciones
+              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-[#25D366] block">
+                Optimizado para Celulares & Computadores
               </span>
             </div>
           </div>
@@ -383,7 +379,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
 
         {/* Auth Gate */}
         {!isAuthenticated ? (
-          <form onSubmit={handleLogin} className="p-10 text-center max-w-md mx-auto space-y-6">
+          <form onSubmit={handleLogin} className="p-8 sm:p-10 text-center max-w-md mx-auto space-y-6">
             <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto border border-white/20">
               <Lock className="w-8 h-8 text-[#ff96c5]" />
             </div>
@@ -401,12 +397,12 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
           </form>
         ) : (
           /* Authenticated Panel */
-          <div className="p-6 sm:p-8 space-y-6">
-            {/* Navigation Tabs */}
-            <div className="flex flex-wrap items-center gap-3 border-b border-white/20 pb-4">
+          <div className="p-4 sm:p-8 space-y-6">
+            {/* Navigation Tabs (Scrollable on Mobile) */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar border-b border-white/20 pb-3">
               <button
                 onClick={() => { setActiveTab('orders'); setIsEditingProduct(false); }}
-                className={`px-5 py-2.5 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
+                className={`shrink-0 px-4 py-2.5 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
                   activeTab === 'orders' ? 'bg-[#f70071] text-white shadow-lg' : 'bg-white/10 text-white/70'
                 }`}
               >
@@ -415,31 +411,31 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
 
               <button
                 onClick={() => setActiveTab('products')}
-                className={`px-5 py-2.5 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
-                  activeTab === 'products' ? 'bg-[#f70071] text-white shadow-lg' : 'bg-white/10 text-white/70'
+                className={`shrink-0 px-4 py-2.5 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
+                  activeTab === 'products' ? 'bg-[#25D366] text-white shadow-lg ring-2 ring-white' : 'bg-white/10 text-white/70'
                 }`}
               >
-                Gestor de Productos ({productsList.length})
+                Gestor Productos ({productsList.length})
               </button>
 
               <button
                 onClick={() => { setActiveTab('custom_bouquet'); setIsEditingProduct(false); }}
-                className={`flex items-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
+                className={`shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
                   activeTab === 'custom_bouquet' ? 'bg-[#25D366] text-white shadow-lg' : 'bg-white/10 text-white/70'
                 }`}
               >
                 <Palette className="w-4 h-4" />
-                <span>Editor Diseña tu Ramo ({customFlowers.length})</span>
+                <span>Diseña tu Ramo ({customFlowers.length})</span>
               </button>
 
               <button
                 onClick={() => { setActiveTab('taxonomy'); setIsEditingProduct(false); }}
-                className={`flex items-center gap-1.5 px-5 py-2.5 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
+                className={`shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
                   activeTab === 'taxonomy' ? 'bg-[#f70071] text-white shadow-lg' : 'bg-white/10 text-white/70'
                 }`}
               >
                 <Sliders className="w-4 h-4" />
-                <span>Categorías & Metadatos</span>
+                <span>Categorías</span>
               </button>
             </div>
 
@@ -489,20 +485,29 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
               </div>
             )}
 
-            {/* TAB 2: PRODUCTS MANAGER (Add / Edit Form with Phone Gallery Upload & Category Select Dropdown) */}
+            {/* TAB 2: PRODUCTS MANAGER (OPTIMIZED FOR MOBILE PHONES & COMPUTERS) */}
             {activeTab === 'products' && (
               <div className="space-y-6">
                 {!isEditingProduct ? (
-                  /* Products List & New Product Button */
+                  /* Products List & Prominent Mobile Action Button */
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-syne text-xl font-black text-white">Catálogo de Productos ({productsList.length})</h4>
+                    {/* Big Action Button Prominent on Mobile Screen */}
+                    <div className="bg-[#42082B] p-4 rounded-2xl border-2 border-[#25D366] flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl">
+                      <div>
+                        <h4 className="font-syne text-lg sm:text-xl font-black text-white">
+                          Catálogo de Productos ({productsList.length})
+                        </h4>
+                        <span className="text-[10px] text-[#ff96c5] font-bold block">
+                          Agrega o edita flores con foto de tu celular y categorías desplegables
+                        </span>
+                      </div>
+
                       <button
                         onClick={handleOpenAddProduct}
-                        className="bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs uppercase tracking-wider px-5 py-2.5 rounded-full flex items-center gap-2 shadow-lg cursor-pointer"
+                        className="w-full sm:w-auto bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs uppercase tracking-wider px-6 py-3.5 rounded-full flex items-center justify-center gap-2 shadow-2xl cursor-pointer transform active:scale-95 transition-all"
                       >
-                        <Plus className="w-4 h-4" />
-                        <span>Nuevo Producto (+Subir Foto)</span>
+                        <Plus className="w-5 h-5 text-white" />
+                        <span>+ Agregar Nuevo Producto</span>
                       </button>
                     </div>
 
@@ -540,10 +545,10 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                   </div>
                 ) : (
                   /* Add / Edit Product Form */
-                  <form onSubmit={handleSaveProduct} className="bg-[#42082B] p-6 rounded-3xl border border-white/20 space-y-6">
+                  <form onSubmit={handleSaveProduct} className="bg-[#42082B] p-4 sm:p-6 rounded-3xl border border-white/20 space-y-6">
                     <div className="flex items-center justify-between border-b border-white/20 pb-4">
-                      <h4 className="font-syne text-xl font-black text-white">
-                        {editingId ? `Editar Producto: ${name}` : '✨ Crear Nuevo Producto (+Subir Foto desde Galería)'}
+                      <h4 className="font-syne text-lg sm:text-xl font-black text-white">
+                        {editingId ? `Editar: ${name}` : '✨ Crear Nuevo Producto'}
                       </h4>
                       <button
                         type="button"
@@ -714,31 +719,9 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                             setDescription(e.target.value);
                             if (!editingId) generateAutoFields(name, e.target.value);
                           }}
-                          placeholder="Detalles de flores, tipo de papel de regalo..."
+                          placeholder="Detalles de flores..."
                           className="w-full bg-white/10 border border-white/30 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
                         />
-                      </div>
-
-                      {/* Generated Metadata Box */}
-                      <div className="sm:col-span-2 bg-[#2B051C] p-4 rounded-2xl border border-[#25D366]/40 space-y-2">
-                        <span className="text-xs font-black text-[#25D366] flex items-center gap-1.5">
-                          <Code className="w-4 h-4" />
-                          <span>SKU & Metadatos Automáticos Generados</span>
-                        </span>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs font-bold text-white">
-                          <div>
-                            <span className="text-[10px] text-white/60 block">SKU:</span>
-                            <span className="text-[#ff96c5] font-syne">{sku}</span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] text-white/60 block">Título SEO:</span>
-                            <span className="truncate block">{metaTitle}</span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] text-white/60 block">Meta Descripción:</span>
-                            <span className="truncate block">{metaDescription}</span>
-                          </div>
-                        </div>
                       </div>
                     </div>
 
