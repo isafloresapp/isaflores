@@ -2,24 +2,25 @@
 
 @layer base {
   :root {
-    /* IsaFlores Brand Color System */
-    --isaflores-red: #EA2840;
-    --isaflores-red-hover: #D01E35;
-    --isaflores-red-light: #FFEAEA;
-    --isaflores-bg: #F7F7F8;
-    --isaflores-green: #00A859;
-    --isaflores-yellow: #FFC107;
+    /* Winter Palette Color System */
+    --winter-berry: #C2185B;
+    --winter-[#00838F]: #00838F;
+    --winter-[#0288D1]: #0288D1;
+    --winter-[#1A237E]: #1A237E;
+    --winter-bg: #F4F8FA;
+    --winter-snow: #FFFFFF;
+    --winter-evergreen: #00695C;
   }
 
   body {
-    background-color: #F7F7F8;
-    color: #1A1A1A;
+    background-color: #F4F8FA;
+    color: #1A237E;
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     overflow-x: hidden;
   }
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar for Winter Navigation */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -28,12 +29,12 @@
   scrollbar-width: none;
 }
 
-.isaflores-card-shadow {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+.winter-card-shadow {
+  box-shadow: 0 4px 20px rgba(0, 131, 143, 0.08);
 }
 
 /* Dropdown Animations */
-@keyframes isafloresSlideUp {
+@keyframes winterSlideUp {
   from {
     transform: translateY(20px);
     opacity: 0;
@@ -45,5 +46,5 @@
 }
 
 .animate-dropdown {
-  animation: isafloresSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: winterSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
