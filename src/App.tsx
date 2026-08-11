@@ -19,7 +19,7 @@ import { OrderStepsSection } from './components/OrderStepsSection';
 import { ReviewsSection } from './components/ReviewsSection';
 import { FaqAccordion } from './components/FaqAccordion';
 import { Footer } from './components/Footer';
-import { Sparkles, PackageSearch, MessageCircle, Heart, Plus, ShieldCheck, Truck, Zap } from 'lucide-react';
+import { Sparkles, PackageSearch } from 'lucide-react';
 
 export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -28,13 +28,22 @@ export default function App() {
   // Dynamic Product Catalog State connected to Database
   const [productsList, setProductsList] = useState<Product[]>([]);
 
-  // Load Database Products on Initial Mount
+  // Load Database Products on Initial Mount & Listen for Real-Time Catalog Updates
   useEffect(() => {
     async function loadDbProducts() {
       const prods = await db.getProducts();
       setProductsList(prods);
     }
     loadDbProducts();
+
+    const handleCatalogChanged = (e: any) => {
+      if (e.detail) {
+        setProductsList(e.detail);
+      }
+    };
+
+    window.addEventListener('isaflores_catalog_changed', handleCatalogChanged);
+    return () => window.removeEventListener('isaflores_catalog_changed', handleCatalogChanged);
   }, []);
 
   // Persistence for Cart & Wishlist
@@ -134,7 +143,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F7F8] text-[#1A1A1A] flex flex-col font-sans pb-16 lg:pb-0">
+    <div className="min-h-screen bg-[#F4F8FA] text-[#1A237E] flex flex-col font-sans pb-16 lg:pb-0">
       
       {/* ARCHITECTURE MODULE 1: Sticky Top Delivery Header */}
       <Navbar
@@ -172,7 +181,7 @@ export default function App() {
 
         {/* Section 4: Interactive Custom Bouquet Studio Card */}
         <div className="max-w-7xl mx-auto px-4 sm:px-8">
-          <div className="bg-gradient-to-r from-[#EA2840] to-[#D01E35] text-white p-6 rounded-3xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="bg-gradient-to-r from-[#00838F] via-[#0288D1] to-[#1A237E] text-white p-6 rounded-3xl shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3 text-left">
               <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
                 <Sparkles className="w-6 h-6 text-[#FFC107]" />
@@ -181,7 +190,7 @@ export default function App() {
                 <h4 className="font-extrabold text-lg text-white">
                   ¿Quieres un ramo totalmente personalizado?
                 </h4>
-                <p className="text-xs text-[#FFEAEA]">
+                <p className="text-xs text-[#E0F7FA]">
                   Selecciona la cantidad, color e icono de cada flor desde $1.200 CLP el tallo.
                 </p>
               </div>
@@ -189,14 +198,14 @@ export default function App() {
 
             <button
               onClick={() => setIsCustomBuilderOpen(true)}
-              className="bg-white hover:bg-[#FFEAEA] text-[#EA2840] font-black text-xs uppercase px-6 py-3 rounded-full shadow-md cursor-pointer transition-all shrink-0"
+              className="bg-white hover:bg-[#E0F7FA] text-[#00838F] font-black text-xs uppercase px-6 py-3 rounded-full shadow-md cursor-pointer transition-all shrink-0"
             >
               Abrir Estudio Diseña tu Ramo
             </button>
           </div>
         </div>
 
-        {/* Section 5: Delivery Products Grid */}
+        {/* Section 5: Delivery Products Grid (Dynamic Catalog) */}
         <ProductGrid
           products={productsList}
           selectedCategory={selectedCategory}
@@ -211,16 +220,16 @@ export default function App() {
 
         {/* Section 6: Real-Time Order Tracking Quick Banner */}
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-2">
-          <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
+          <div className="bg-white p-6 rounded-3xl border border-cyan-100 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-[#00A859]/10 text-[#00A859] flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-[#00838F]/10 text-[#00838F] flex items-center justify-center shrink-0">
                 <PackageSearch className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="font-extrabold text-base text-[#1A1A1A]">
+                <h4 className="font-extrabold text-base text-[#1A237E]">
                   ¿Ya realizaste tu pedido? Sigue el estado en tiempo real
                 </h4>
-                <p className="text-xs text-gray-500 font-medium">
+                <p className="text-xs text-cyan-900/60 font-medium">
                   Ingresa tu número de orden para escanear si está en elaboración en taller o despachado.
                 </p>
               </div>
@@ -228,7 +237,7 @@ export default function App() {
 
             <button
               onClick={() => setIsOrderTrackingOpen(true)}
-              className="bg-[#EA2840] hover:bg-[#D01E35] text-white font-black text-xs uppercase px-6 py-3 rounded-full shadow-md cursor-pointer transition-all shrink-0"
+              className="bg-[#C2185B] hover:bg-[#8E24AA] text-white font-black text-xs uppercase px-6 py-3 rounded-full shadow-md cursor-pointer transition-all shrink-0"
             >
               🔍 Rastrear Mi Orden
             </button>

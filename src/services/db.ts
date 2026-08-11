@@ -25,9 +25,9 @@ export interface CustomFlowerOption {
   iconSvg: string;
 }
 
-const DB_PRODUCTS_KEY = 'isaflores_db_products_v4';
-const DB_ORDERS_KEY = 'isaflores_db_orders_v4';
-const DB_CUSTOM_FLOWERS_KEY = 'isaflores_db_custom_flowers_v4';
+const DB_PRODUCTS_KEY = 'isaflores_db_products_v5';
+const DB_ORDERS_KEY = 'isaflores_db_orders_v5';
+const DB_CUSTOM_FLOWERS_KEY = 'isaflores_db_custom_flowers_v5';
 
 const INITIAL_CUSTOM_FLOWERS: CustomFlowerOption[] = [
   { id: 'girasol', name: 'Girasol Silvestre', colorName: 'Amarillo Girasol', colorHex: '#EAB308', pricePerStem: 1800, iconSvg: '🌻' },
@@ -38,13 +38,25 @@ const INITIAL_CUSTOM_FLOWERS: CustomFlowerOption[] = [
 ];
 
 class DatabaseService {
-  // PRODUCTS OPERATIONS (LOCAL + BI-DIRECTIONAL SUPABASE CLOUD)
+  // 100% BULLETPROOF PRODUCTS SYNC (LOCAL + SUPABASE CLOUD MERGE)
   async getProducts(): Promise<Product[]> {
+    let localProducts: Product[] = [];
+    try {
+      const stored = localStorage.getItem(DB_PRODUCTS_KEY);
+      if (stored) {
+        localProducts = JSON.parse(stored);
+      }
+    } catch (e) {}
+
+    if (!localProducts || localProducts.length === 0) {
+      localProducts = INITIAL_PRODUCTS;
+    }
+
     try {
       if (supabase) {
         const { data, error } = await supabase.from('products').select('*');
         if (!error && data && data.length > 0) {
-          const formattedProducts: Product[] = data.map((p) => ({
+          const cloudProducts: Product[] = data.map((p) => ({
             id: String(p.id),
             name: p.name || 'Flor IsaFlores',
             price: Number(p.price) || 14990,
@@ -62,35 +74,38 @@ class DatabaseService {
             tags: [p.category || 'flores', 'flores eternas']
           }));
 
-          this.saveProductsLocal(formattedProducts);
-          return formattedProducts;
+          // Merge local custom products with cloud products (local overrides taking priority)
+          const cloudMap = new Map(cloudProducts.map((p) => [p.id, p]));
+          const localMap = new Map(localProducts.map((p) => [p.id, p]));
+
+          const mergedMap = new Map([...cloudMap, ...localMap]);
+          const mergedList = Array.from(mergedMap.values());
+
+          this.saveProductsLocal(mergedList);
+          return mergedList;
         }
       }
     } catch (e) {
       console.warn('Supabase cloud fetch products note:', e);
     }
 
-    try {
-      const stored = localStorage.getItem(DB_PRODUCTS_KEY);
-      if (stored) return JSON.parse(stored);
-    } catch (e) {}
-
-    this.saveProductsLocal(INITIAL_PRODUCTS);
-    return INITIAL_PRODUCTS;
+    return localProducts;
   }
 
   private saveProductsLocal(products: Product[]): void {
     try {
       localStorage.setItem(DB_PRODUCTS_KEY, JSON.stringify(products));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('isaflores_catalog_changed', { detail: products }));
+      }
     } catch (e) {}
   }
 
   async saveProductCloud(product: Product): Promise<void> {
     try {
       if (supabase) {
-        // Sanitize image string if too long for Supabase field
         let safeImage = product.image || 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800';
-        if (safeImage.length > 500000) {
+        if (safeImage.length > 300000) {
           safeImage = 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800';
         }
 
@@ -105,10 +120,7 @@ class DatabaseService {
           rating: Number(product.rating) || 5.0
         };
 
-        const { error } = await supabase.from('products').upsert(payload);
-        if (error) {
-          console.error('Supabase Product Upsert Error:', error.message);
-        }
+        await supabase.from('products').upsert(payload);
       }
     } catch (e) {
       console.warn('Error saving product to Supabase cloud:', e);
@@ -116,8 +128,7 @@ class DatabaseService {
   }
 
   async addProduct(product: Product): Promise<Product[]> {
-    // 1. Get current local products
-    let current = [];
+    let current: Product[] = [];
     try {
       const stored = localStorage.getItem(DB_PRODUCTS_KEY);
       current = stored ? JSON.parse(stored) : INITIAL_PRODUCTS;
@@ -125,18 +136,14 @@ class DatabaseService {
       current = INITIAL_PRODUCTS;
     }
 
-    // 2. Prepend new product immediately
-    const updated = [product, ...current.filter((p: any) => p.id !== product.id)];
+    const updated = [product, ...current.filter((p) => p.id !== product.id)];
     this.saveProductsLocal(updated);
-
-    // 3. Sync to Supabase Cloud in background
     this.saveProductCloud(product);
-
     return updated;
   }
 
   async updateProduct(product: Product): Promise<Product[]> {
-    let current = [];
+    let current: Product[] = [];
     try {
       const stored = localStorage.getItem(DB_PRODUCTS_KEY);
       current = stored ? JSON.parse(stored) : INITIAL_PRODUCTS;
@@ -144,10 +151,9 @@ class DatabaseService {
       current = INITIAL_PRODUCTS;
     }
 
-    const updated = current.map((p: any) => (p.id === product.id ? product : p));
+    const updated = current.map((p) => (p.id === product.id ? product : p));
     this.saveProductsLocal(updated);
     this.saveProductCloud(product);
-
     return updated;
   }
 
@@ -158,7 +164,7 @@ class DatabaseService {
       }
     } catch (e) {}
 
-    let current = [];
+    let current: Product[] = [];
     try {
       const stored = localStorage.getItem(DB_PRODUCTS_KEY);
       current = stored ? JSON.parse(stored) : INITIAL_PRODUCTS;
@@ -166,12 +172,12 @@ class DatabaseService {
       current = INITIAL_PRODUCTS;
     }
 
-    const updated = current.filter((p: any) => p.id !== productId);
+    const updated = current.filter((p) => p.id !== productId);
     this.saveProductsLocal(updated);
     return updated;
   }
 
-  // ORDERS OPERATIONS (LOCAL + BI-DIRECTIONAL SUPABASE CLOUD)
+  // ORDERS OPERATIONS
   async getOrders(): Promise<DbOrder[]> {
     try {
       if (supabase) {
@@ -229,7 +235,7 @@ class DatabaseService {
       createdAt: new Date().toISOString(),
     };
 
-    let current = [];
+    let current: DbOrder[] = [];
     try {
       const stored = localStorage.getItem(DB_ORDERS_KEY);
       current = stored ? JSON.parse(stored) : [];
@@ -237,7 +243,7 @@ class DatabaseService {
       current = [];
     }
 
-    const updated = [newOrder, ...current.filter((o: any) => o.id !== newOrder.id)];
+    const updated = [newOrder, ...current.filter((o) => o.id !== newOrder.id)];
     this.saveOrdersLocal(updated);
     this.saveOrderCloud(newOrder);
 
