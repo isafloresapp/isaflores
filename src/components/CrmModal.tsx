@@ -216,8 +216,12 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
       onUpdateProductCatalog(newProducts || []);
     }
 
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('isaflores_catalog_changed', { detail: newProducts }));
+    }
+
     setIsEditingProduct(false);
-    alert(`¡Producto "${name}" guardado en la Base de Datos con éxito!`);
+    alert(`¡Producto "${name}" guardado e insertado en la Base de Datos con éxito!`);
   };
 
   const handleDeleteProduct = async (prodId: string) => {
@@ -226,6 +230,9 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
       setProductsList(newProducts || []);
       if (onUpdateProductCatalog) {
         onUpdateProductCatalog(newProducts || []);
+      }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('isaflores_catalog_changed', { detail: newProducts }));
       }
     }
   };
