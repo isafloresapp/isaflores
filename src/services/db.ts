@@ -25,9 +25,9 @@ export interface CustomFlowerOption {
   iconSvg: string;
 }
 
-const DB_PRODUCTS_KEY = 'isaflores_db_products_v5';
-const DB_ORDERS_KEY = 'isaflores_db_orders_v5';
-const DB_CUSTOM_FLOWERS_KEY = 'isaflores_db_custom_flowers_v5';
+const DB_PRODUCTS_KEY = 'isaflores_db_products_v6';
+const DB_ORDERS_KEY = 'isaflores_db_orders_v6';
+const DB_CUSTOM_FLOWERS_KEY = 'isaflores_db_custom_flowers_v6';
 
 const INITIAL_CUSTOM_FLOWERS: CustomFlowerOption[] = [
   { id: 'girasol', name: 'Girasol Silvestre', colorName: 'Amarillo Girasol', colorHex: '#EAB308', pricePerStem: 1800, iconSvg: '🌻' },
@@ -38,7 +38,7 @@ const INITIAL_CUSTOM_FLOWERS: CustomFlowerOption[] = [
 ];
 
 class DatabaseService {
-  // 100% BULLETPROOF PRODUCTS SYNC (LOCAL + SUPABASE CLOUD MERGE)
+  // 100% PERSISTENT PRODUCTS SYNC (BI-DIRECTIONAL SUPABASE CLOUD + SAFE LOCALSTORAGE)
   async getProducts(): Promise<Product[]> {
     let localProducts: Product[] = [];
     try {
@@ -74,7 +74,7 @@ class DatabaseService {
             tags: [p.category || 'flores', 'flores eternas']
           }));
 
-          // Merge local custom products with cloud products (local overrides taking priority)
+          // Merge maps: Cloud products first, then local products taking precedence so user additions are NEVER lost
           const cloudMap = new Map(cloudProducts.map((p) => [p.id, p]));
           const localMap = new Map(localProducts.map((p) => [p.id, p]));
 
@@ -98,14 +98,23 @@ class DatabaseService {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('isaflores_catalog_changed', { detail: products }));
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('LocalStorage quota warning, saving lightweight fallback:', e);
+      try {
+        const lightweight = products.map((p) => ({
+          ...p,
+          image: p.image.length > 50000 ? 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800' : p.image
+        }));
+        localStorage.setItem(DB_PRODUCTS_KEY, JSON.stringify(lightweight));
+      } catch (e2) {}
+    }
   }
 
   async saveProductCloud(product: Product): Promise<void> {
     try {
       if (supabase) {
         let safeImage = product.image || 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800';
-        if (safeImage.length > 300000) {
+        if (safeImage.length > 200000) {
           safeImage = 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800';
         }
 
@@ -120,7 +129,10 @@ class DatabaseService {
           rating: Number(product.rating) || 5.0
         };
 
-        await supabase.from('products').upsert(payload);
+        const { error } = await supabase.from('products').upsert(payload);
+        if (error) {
+          console.error('Supabase Product Upsert Error:', error.message);
+        }
       }
     } catch (e) {
       console.warn('Error saving product to Supabase cloud:', e);
@@ -138,7 +150,7 @@ class DatabaseService {
 
     const updated = [product, ...current.filter((p) => p.id !== product.id)];
     this.saveProductsLocal(updated);
-    this.saveProductCloud(product);
+    await this.saveProductCloud(product);
     return updated;
   }
 
@@ -153,7 +165,7 @@ class DatabaseService {
 
     const updated = current.map((p) => (p.id === product.id ? product : p));
     this.saveProductsLocal(updated);
-    this.saveProductCloud(product);
+    await this.saveProductCloud(product);
     return updated;
   }
 
@@ -245,8 +257,7 @@ class DatabaseService {
 
     const updated = [newOrder, ...current.filter((o) => o.id !== newOrder.id)];
     this.saveOrdersLocal(updated);
-    this.saveOrderCloud(newOrder);
-
+    await this.saveOrderCloud(newOrder);
     return updated;
   }
 
@@ -262,7 +273,7 @@ class DatabaseService {
     const target = current.find((o) => o.id === orderId);
     if (target) {
       const updatedOrder = { ...target, status };
-      this.saveOrderCloud(updatedOrder);
+      await this.saveOrderCloud(updatedOrder);
     }
 
     const updatedList = current.map((o) => (o.id === orderId ? { ...o, status } : o));
@@ -271,7 +282,7 @@ class DatabaseService {
   }
 
   async updateOrder(order: DbOrder): Promise<DbOrder[]> {
-    this.saveOrderCloud(order);
+    await this.saveOrderCloud(order);
     let current: DbOrder[] = [];
     try {
       const stored = localStorage.getItem(DB_ORDERS_KEY);

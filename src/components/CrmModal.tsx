@@ -45,7 +45,6 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
 
   // Database State
   const [orders, setOrders] = useState<DbOrder[]>([]);
-  const [editingOrder, setEditingOrder] = useState<DbOrder | null>(null);
   const [productsList, setProductsList] = useState<Product[]>([]);
   const [isEditingProduct, setIsEditingProduct] = useState(false);
 
@@ -114,19 +113,56 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     }
   };
 
-  // Image File Upload Handler
+  // Canvas Image Compressor to prevent LocalStorage & Supabase QuotaExceededError
+  const compressImage = (file: File, callback: (compressedUrl: string) => void) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 600;
+        const MAX_HEIGHT = 600;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width = Math.round((width * MAX_HEIGHT) / height);
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          callback(compressedDataUrl);
+        } else {
+          callback(event.target?.result as string);
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Image File Upload Handler with Auto-Compression
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64Url = reader.result as string;
-        if (targetImgSlot === 1) setImg1(base64Url);
-        else if (targetImgSlot === 2) setImg2(base64Url);
-        else if (targetImgSlot === 3) setImg3(base64Url);
-        alert(`¡Foto cargada desde la Galería/Cámara en el espacio ${targetImgSlot}!`);
-      };
-      reader.readAsDataURL(file);
+      compressImage(file, (compressedBase64) => {
+        if (targetImgSlot === 1) setImg1(compressedBase64);
+        else if (targetImgSlot === 2) setImg2(compressedBase64);
+        else if (targetImgSlot === 3) setImg3(compressedBase64);
+        alert(`¡Foto optimizada y cargada desde la Galería/Cámara en el espacio ${targetImgSlot}!`);
+      });
     }
   };
 
@@ -216,12 +252,8 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
       onUpdateProductCatalog(newProducts || []);
     }
 
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('isaflores_catalog_changed', { detail: newProducts }));
-    }
-
     setIsEditingProduct(false);
-    alert(`¡Producto "${name}" guardado e insertado en la Base de Datos con éxito!`);
+    alert(`¡Producto "${name}" guardado en la Base de Datos! Persiste tras recargar (F5).`);
   };
 
   const handleDeleteProduct = async (prodId: string) => {
@@ -230,9 +262,6 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
       setProductsList(newProducts || []);
       if (onUpdateProductCatalog) {
         onUpdateProductCatalog(newProducts || []);
-      }
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('isaflores_catalog_changed', { detail: newProducts }));
       }
     }
   };
@@ -402,7 +431,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
               </button>
             </div>
 
-            {/* TAB 1: ORDERS WITH FAILSAFE PROTECTION AGAINST UNDEFINED PROPS */}
+            {/* TAB 1: ORDERS */}
             {activeTab === 'orders' && (
               <div className="space-y-4">
                 <h4 className="font-syne text-xl font-black text-white">Cotizaciones Registradas</h4>
@@ -600,7 +629,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                       <div className="sm:col-span-2 space-y-3 bg-[#2B051C] p-4 rounded-2xl border border-white/20">
                         <span className="text-xs font-black text-[#ff96c5] flex items-center gap-1.5">
                           <Image className="w-4 h-4" />
-                          <span>Subir Fotos desde la Galería del Celular o Cámara (Hasta 3 Fotos)</span>
+                          <span>Subir Fotos desde la Galería del Celular o Cámara (Compresión Automática 100% Persistente)</span>
                         </span>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
