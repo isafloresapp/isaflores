@@ -139,7 +139,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
       const rawResult = event.target?.result as string;
       if (!rawResult) return;
 
-      const img = new Image();
+      const img = new window.Image();
       img.onerror = () => {
         callback(rawResult);
       };
