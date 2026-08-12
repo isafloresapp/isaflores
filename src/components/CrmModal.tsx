@@ -82,7 +82,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
   const [badge, setBadge] = useState('Nuevo');
   
   // Image Slots (Up to 3) with Gallery / Camera Upload & Direct URL Link Input
-  const [img1, setImg1] = useState('https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800');
+  const [img1, setImg1] = useState('');
   const [img2, setImg2] = useState('');
   const [img3, setImg3] = useState('');
   const [selectedColors, setSelectedColors] = useState<string[]>(['Rosa Pastel', 'Fucsia Magenta']);
@@ -213,7 +213,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     setSubcategory(subcategoriesMap[categories[0]?.id || 'ramos']?.[0] || 'Ramos de Autor');
     setDescription('');
     setBadge('Nuevo');
-    setImg1('https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800');
+    setImg1('');
     setImg2('');
     setImg3('');
     setSelectedColors(['Rosa Pastel']);
