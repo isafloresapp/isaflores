@@ -213,9 +213,9 @@ export const customerStore = {
   },
 
   findByPhone: async (phone: string): Promise<AdminCustomer | undefined> => {
-    const normalized = phone.replace(/\\s/g, '');
+    const normalized = (phone || '').replace(/\s/g, '');
     const { data } = await supabase.from('customers').select('*');
-    const found = (data || []).find(c => c.phone?.replace(/\\s/g, '') === normalized);
+    const found = (data || []).find(c => c.phone?.replace(/\s/g, '') === normalized);
     return found ? toCustomer(found) : undefined;
   },
 
