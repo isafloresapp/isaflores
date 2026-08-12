@@ -103,7 +103,7 @@ class DatabaseService {
       try {
         const lightweight = products.map((p) => ({
           ...p,
-          image: p.image.length > 50000 ? 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800' : p.image
+          image: p.image.length > 300000 ? 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800' : p.image
         }));
         localStorage.setItem(DB_PRODUCTS_KEY, JSON.stringify(lightweight));
       } catch (e2) {}
@@ -114,7 +114,7 @@ class DatabaseService {
     try {
       if (supabase) {
         let safeImage = product.image || 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800';
-        if (safeImage.length > 200000) {
+        if (safeImage.length > 2500000) {
           safeImage = 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800';
         }
 

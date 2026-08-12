@@ -146,10 +146,10 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
       img.onload = () => {
         try {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 600;
-          const MAX_HEIGHT = 600;
-          let width = img.width || 600;
-          let height = img.height || 600;
+          const MAX_WIDTH = 400;
+          const MAX_HEIGHT = 400;
+          let width = img.width || 400;
+          let height = img.height || 400;
 
           if (width > height) {
             if (width > MAX_WIDTH) {
@@ -168,7 +168,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
-            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.5);
             callback(compressedDataUrl || rawResult);
           } else {
             callback(rawResult);
