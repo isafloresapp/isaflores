@@ -6,6 +6,49 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ onOpenCrm }) => {
+  const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null);
+  const [isInstallable, setIsInstallable] = React.useState(true);
+
+  React.useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setIsInstallable(false);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      alert(
+        'Para instalar la App de IsaFlores en tu celular o computador:\n\n' +
+        '• En iPhone/iPad (Safari): Presiona el botón "Compartir" 📤 y selecciona "Agregar a la pantalla de inicio" 📲.\n' +
+        '• En Android (Chrome): Presiona los tres puntos verticales en la esquina superior derecha y selecciona "Instalar aplicación" o "Agregar a la pantalla principal".\n' +
+        '• En Computador (Chrome/Edge): Haz clic en el icono de instalación 💻 en la barra de direcciones superior.'
+      );
+      return;
+    }
+    try {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setIsInstallable(false);
+      }
+      setDeferredPrompt(null);
+    } catch (e) {
+      console.warn('Error displaying PWA install prompt:', e);
+    }
+  };
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -77,11 +120,22 @@ export const Footer: React.FC<FooterProps> = ({ onOpenCrm }) => {
         </div>
       </div>
 
-      {/* Bottom Bar with CRM Button */}
+      {/* Bottom Bar with CRM & Install App Buttons */}
       <div className="max-w-7xl mx-auto px-6 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-bold text-[#1A0D18]/70">
         <span>© 2026 IsaFlores. Flores que duran, emociones que perduran.</span>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          {isInstallable && (
+            <button
+              onClick={handleInstallClick}
+              className="flex items-center gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white px-4 py-2 rounded-full border border-transparent shadow-xs transition-all cursor-pointer font-bold"
+              title="Instalar la Aplicación en tu Dispositivo"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Instalar App 📲</span>
+            </button>
+          )}
+
           <button
             onClick={onOpenCrm}
             className="flex items-center gap-2 bg-[#E91E63] hover:bg-[#C2185B] text-white px-4 py-2 rounded-full border border-transparent shadow-xs transition-all cursor-pointer font-bold"
