@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Lock, Users, ShoppingBag, Truck, Calendar, Phone, CheckCircle2, Search, ArrowRight, ShieldCheck, Sparkles, Plus, Edit3, Trash2, Image, Tag, Code, Layers, Check, Camera, Mic, Upload, Settings, Sliders, RefreshCw, Palette } from 'lucide-react';
+import { X, Lock, Users, ShoppingBag, Truck, Calendar, Phone, CheckCircle2, Search, ArrowRight, ShieldCheck, Sparkles, Plus, Edit3, Trash2, Image, Tag, Code, Layers, Check, Camera, Mic, Upload, Settings, Sliders, RefreshCw, Palette, Link as LinkIcon } from 'lucide-react';
 import { Product } from '../types';
 import { db, DbOrder, CustomFlowerOption } from '../services/db';
 
@@ -73,7 +73,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
   const [description, setDescription] = useState('');
   const [badge, setBadge] = useState('Nuevo');
   
-  // Image Slots (Up to 3) with Phone Gallery / Camera Upload
+  // Image Slots (Up to 3) with Gallery / Camera Upload & Direct URL Link Input
   const [img1, setImg1] = useState('https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800');
   const [img2, setImg2] = useState('');
   const [img3, setImg3] = useState('');
@@ -81,11 +81,6 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
   const [sku, setSku] = useState('');
   const [metaTitle, setMetaTitle] = useState('');
   const [metaDescription, setMetaDescription] = useState('');
-
-  // Hidden File Inputs for Phone Gallery and Camera
-  const fileInputGalleryRef = useRef<HTMLInputElement>(null);
-  const fileInputCameraRef = useRef<HTMLInputElement>(null);
-  const [targetImgSlot, setTargetImgSlot] = useState<1 | 2 | 3>(1);
 
   useEffect(() => {
     if (isOpen) {
@@ -153,17 +148,15 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     reader.readAsDataURL(file);
   };
 
-  // Image File Upload Handler with Auto-Compression
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      compressImage(file, (compressedBase64) => {
-        if (targetImgSlot === 1) setImg1(compressedBase64);
-        else if (targetImgSlot === 2) setImg2(compressedBase64);
-        else if (targetImgSlot === 3) setImg3(compressedBase64);
-        alert(`¡Foto optimizada y cargada desde la Galería/Cámara en el espacio ${targetImgSlot}!`);
-      });
-    }
+  // Direct Slot Image File Upload Handler
+  const handleSlotFileUpload = (slotNum: 1 | 2 | 3, file: File | undefined) => {
+    if (!file) return;
+    compressImage(file, (compressedBase64) => {
+      if (slotNum === 1) setImg1(compressedBase64);
+      else if (slotNum === 2) setImg2(compressedBase64);
+      else if (slotNum === 3) setImg3(compressedBase64);
+      alert(`¡Foto ${slotNum} cargada y optimizada con éxito!`);
+    });
   };
 
   const generateAutoFields = (productName: string, desc: string) => {
@@ -253,7 +246,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     }
 
     setIsEditingProduct(false);
-    alert(`¡Producto "${name}" guardado en la Base de Datos! Persiste tras recargar (F5).`);
+    alert(`¡Producto "${name}" guardado en la Base de Datos!`);
   };
 
   const handleDeleteProduct = async (prodId: string) => {
@@ -338,11 +331,8 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-dropdown">
-      {/* Hidden File Inputs for Phone Gallery and Camera */}
-      <input type="file" ref={fileInputGalleryRef} accept="image/*" onChange={handleFileUpload} className="hidden" />
-      <input type="file" ref={fileInputCameraRef} accept="image/*" capture="environment" onChange={handleFileUpload} className="hidden" />
-
       <div className="bg-[#2B051C] border-2 border-[#f70071]/40 rounded-3xl max-w-5xl w-full max-h-[95vh] overflow-y-auto shadow-2xl text-white text-left relative">
+        
         {/* Header */}
         <div className="sticky top-0 z-20 bg-[#2B051C]/95 backdrop-blur-xl p-4 sm:p-6 border-b border-white/20 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -493,7 +483,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                           Catálogo de Productos ({productsList.length})
                         </h4>
                         <span className="text-[10px] text-[#ff96c5] font-bold block">
-                          Agrega o edita flores con foto de tu celular y categorías desplegables
+                          Agrega o edita flores con foto de tu celular o pega un enlace de imagen
                         </span>
                       </div>
 
@@ -587,7 +577,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-[#ff96c5] flex items-center gap-1.5">
                           <Sliders className="w-3.5 h-3.5" />
-                          <span>Categoría Principal (Menú Desplegable) *</span>
+                          <span>Categoría Principal *</span>
                         </label>
                         <select
                           value={category}
@@ -610,7 +600,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-[#ff96c5] flex items-center gap-1.5">
                           <Tag className="w-3.5 h-3.5" />
-                          <span>Subcategoría (Menú Desplegable) *</span>
+                          <span>Subcategoría *</span>
                         </label>
                         <select
                           value={subcategory}
@@ -625,51 +615,94 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                         </select>
                       </div>
 
-                      {/* Image Upload Box with Phone Gallery & Camera Upload Buttons */}
-                      <div className="sm:col-span-2 space-y-3 bg-[#2B051C] p-4 rounded-2xl border border-white/20">
-                        <span className="text-xs font-black text-[#ff96c5] flex items-center gap-1.5">
-                          <Image className="w-4 h-4" />
-                          <span>Subir Fotos desde la Galería del Celular o Cámara (Compresión Automática 100% Persistente)</span>
-                        </span>
+                      {/* 100% Robust Image Slots with Gallery / Camera Upload & URL Link Input */}
+                      <div className="sm:col-span-2 space-y-4 bg-[#2B051C] p-4 sm:p-5 rounded-2xl border border-white/20">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black text-[#ff96c5] flex items-center gap-1.5">
+                            <Image className="w-4 h-4" />
+                            <span>Imágenes del Producto (Subir foto o pegar enlace de imagen)</span>
+                          </span>
+                        </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          {[1, 2, 3].map((slotNum) => {
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          {([1, 2, 3] as const).map((slotNum) => {
                             const imgVal = slotNum === 1 ? img1 : slotNum === 2 ? img2 : img3;
-                            return (
-                              <div key={slotNum} className="space-y-2 bg-white/5 p-3 rounded-xl border border-white/10">
-                                <span className="text-[10px] font-bold text-white block">Foto {slotNum}</span>
-                                {imgVal ? (
-                                  <img src={imgVal} alt={`Foto ${slotNum}`} className="h-20 w-full object-cover rounded-lg border border-white/20" />
-                                ) : (
-                                  <div className="h-20 w-full rounded-lg border border-dashed border-white/20 flex items-center justify-center text-white/40 text-[10px]">
-                                    Sin foto
-                                  </div>
-                                )}
-                                
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setTargetImgSlot(slotNum as any);
-                                      fileInputGalleryRef.current?.click();
-                                    }}
-                                    className="flex-1 bg-[#f70071] hover:bg-[#ff1b82] text-white text-[9px] font-black py-1.5 rounded-lg flex items-center justify-center gap-1 cursor-pointer"
-                                  >
-                                    <Upload className="w-3 h-3" />
-                                    <span>Galería</span>
-                                  </button>
+                            const setImgFn = slotNum === 1 ? setImg1 : slotNum === 2 ? setImg2 : setImg3;
 
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setTargetImgSlot(slotNum as any);
-                                      fileInputCameraRef.current?.click();
-                                    }}
-                                    className="flex-1 bg-[#25D366] hover:bg-[#128C7E] text-white text-[9px] font-black py-1.5 rounded-lg flex items-center justify-center gap-1 cursor-pointer"
-                                  >
-                                    <Camera className="w-3 h-3" />
-                                    <span>Cámara</span>
-                                  </button>
+                            return (
+                              <div key={slotNum} className="space-y-2 bg-white/5 p-3 rounded-xl border border-white/10 flex flex-col justify-between">
+                                <div className="space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-extrabold text-white">Foto {slotNum} {slotNum === 1 ? '(Principal *)' : ''}</span>
+                                    {imgVal && (
+                                      <button type="button" onClick={() => setImgFn('')} className="text-[9px] text-red-400 hover:underline">
+                                        Borrar
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {/* Thumbnail Preview */}
+                                  {imgVal ? (
+                                    <div className="relative group">
+                                      <img src={imgVal} alt={`Foto ${slotNum}`} className="h-24 w-full object-cover rounded-lg border border-white/20" />
+                                      <span className="absolute bottom-1 right-1 bg-black/70 text-[8px] text-[#25D366] font-black px-1.5 py-0.5 rounded-md">
+                                        ✓ Lista
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="h-24 w-full rounded-lg border-2 border-dashed border-white/20 flex flex-col items-center justify-center text-white/40 text-[10px] gap-1 bg-white/5">
+                                      <Image className="w-5 h-5 text-white/30" />
+                                      <span>Sin imagen</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Option A: Paste Direct Image URL */}
+                                <div className="space-y-1 pt-1 border-t border-white/10">
+                                  <div className="flex items-center gap-1 bg-white/10 rounded-lg px-2 py-1 border border-white/20">
+                                    <LinkIcon className="w-3 h-3 text-[#ff96c5] shrink-0" />
+                                    <input
+                                      type="url"
+                                      value={imgVal}
+                                      onChange={(e) => setImgFn(e.target.value)}
+                                      placeholder="https://enlace-de-foto.com/ramo.jpg"
+                                      className="w-full text-[10px] bg-transparent text-white outline-none font-medium"
+                                    />
+                                  </div>
+
+                                  {/* Option B: Direct Slot File Inputs (Gallery & Camera) */}
+                                  <div className="grid grid-cols-2 gap-1 pt-1">
+                                    <label className="bg-[#f70071] hover:bg-[#ff1b82] text-white text-[9px] font-black py-1.5 rounded-lg flex items-center justify-center gap-1 cursor-pointer text-center">
+                                      <Upload className="w-3 h-3" />
+                                      <span>Galería</span>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0];
+                                          handleSlotFileUpload(slotNum, file);
+                                          e.target.value = '';
+                                        }}
+                                        className="hidden"
+                                      />
+                                    </label>
+
+                                    <label className="bg-[#25D366] hover:bg-[#128C7E] text-white text-[9px] font-black py-1.5 rounded-lg flex items-center justify-center gap-1 cursor-pointer text-center">
+                                      <Camera className="w-3 h-3" />
+                                      <span>Cámara</span>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        capture="environment"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0];
+                                          handleSlotFileUpload(slotNum, file);
+                                          e.target.value = '';
+                                        }}
+                                        className="hidden"
+                                      />
+                                    </label>
+                                  </div>
                                 </div>
                               </div>
                             );
