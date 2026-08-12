@@ -46,6 +46,54 @@ export default function App() {
     return () => window.removeEventListener('isaflores_catalog_changed', handleCatalogChanged);
   }, []);
 
+  // PWA Automatic Installation Prompt Trigger
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBanner(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    const timer = setTimeout(() => {
+      if (!window.matchMedia('(display-mode: standalone)').matches) {
+        setShowInstallBanner(true);
+      }
+    }, 3000);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      clearTimeout(timer);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) {
+      alert(
+        'Para instalar la App de IsaFlores en tu celular o computador:\n\n' +
+        '• En iPhone/iPad (Safari): Presiona el botón "Compartir" 📤 y selecciona "Agregar a la pantalla de inicio" 📲.\n' +
+        '• En Android (Chrome): Presiona los tres puntos verticales en la esquina superior derecha y selecciona "Instalar aplicación" o "Agregar a la pantalla principal".\n' +
+        '• En Computador (Chrome/Edge): Haz clic en el icono de instalación 💻 en la barra de direcciones superior.'
+      );
+      setShowInstallBanner(false);
+      return;
+    }
+    try {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setShowInstallBanner(false);
+      }
+      setDeferredPrompt(null);
+    } catch (e) {
+      console.warn('Error launching install prompt:', e);
+    }
+  };
+
   // Persistence for Cart & Wishlist
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
     try {
@@ -365,6 +413,36 @@ export default function App() {
           setIsWishlistOpen(false);
         }}
       />
+
+      {showInstallBanner && (
+        <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-8 md:max-w-md z-50 bg-[#2B051C]/95 backdrop-blur-md border-2 border-[#f70071]/40 rounded-3xl p-5 shadow-2xl animate-slideUp text-white">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#f70071] flex items-center justify-center shrink-0 shadow-lg">
+              <img src="/logo.png" alt="IsaFlores Mini Logo" className="w-10 h-10 rounded-full object-cover" />
+            </div>
+            <div className="flex-1 space-y-1.5 text-left">
+              <h4 className="font-syne text-sm font-black text-white">📲 Instala la App de IsaFlores</h4>
+              <p className="text-[11px] font-bold text-[#ff96c5]/90 leading-relaxed">
+                Accede al catálogo al instante, personaliza tu ramo y sigue tu cotización sin abrir el navegador.
+              </p>
+              <div className="flex items-center gap-2.5 pt-1">
+                <button
+                  onClick={handleInstallApp}
+                  className="bg-[#25D366] hover:bg-[#128C7E] text-white text-[10px] font-black uppercase tracking-wider px-4 py-2 rounded-full shadow-md cursor-pointer transition-transform active:scale-95"
+                >
+                  Instalar ahora
+                </button>
+                <button
+                  onClick={() => setShowInstallBanner(false)}
+                  className="bg-white/10 hover:bg-white/20 text-white/80 text-[10px] font-black uppercase px-3 py-2 rounded-full cursor-pointer"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
