@@ -61,7 +61,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenCrm }) => {
           <img
             src="/logo.png"
             alt="IsaFlores - Hecho con cariño, no marchitan"
-            className="h-28 sm:h-36 md:h-40 w-auto object-contain rounded-2xl shadow-xs"
+            className="h-28 w-28 sm:h-36 sm:w-36 rounded-full border-2 border-[#f70071]/15 shadow-xs object-cover"
           />
 
           <p className="text-xs sm:text-sm font-semibold text-[#1A0D18]/80 leading-relaxed max-w-md">

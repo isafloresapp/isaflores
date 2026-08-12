@@ -128,6 +128,15 @@ export default function App() {
     setCartItems([]);
   };
 
+  const [isLoadingPage, setIsLoadingPage] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoadingPage(false);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
   const wishlistProducts = productsList.filter((p) => wishlistIds.includes(p.id));
   const totalCartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -141,6 +150,32 @@ export default function App() {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  if (isLoadingPage) {
+    return (
+      <div className="fixed inset-0 z-50 bg-[#FDF0F5] flex flex-col items-center justify-center animate-fadeIn">
+        <div className="relative flex flex-col items-center gap-6">
+          <div className="relative">
+            <img
+              src="/logo.png"
+              alt="IsaFlores Loader"
+              className="w-32 h-32 rounded-full border-4 border-[#f70071]/30 shadow-2xl animate-pulse object-cover"
+            />
+            <div className="absolute -inset-2 rounded-full border-4 border-t-[#f70071] border-r-transparent border-b-[#ff96c5] border-l-transparent animate-spin duration-1000" />
+          </div>
+
+          <div className="text-center space-y-2">
+            <h1 className="font-syne text-2xl font-black text-[#1A0D18] tracking-wide">
+              IsaFlores
+            </h1>
+            <p className="text-xs font-bold text-[#E91E63] uppercase tracking-widest animate-pulse">
+              Recuerdos que perduran...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F4F8FA] text-[#1A237E] flex flex-col font-sans pb-16 lg:pb-0">

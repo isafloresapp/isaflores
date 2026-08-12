@@ -78,8 +78,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         <a href="#" className="flex items-center gap-2 group shrink-0">
           <img
             src="/logo.png"
-            alt="IsaFlores. Colección Invernal."
-            className="h-14 sm:h-16 w-auto object-contain rounded-lg group-hover:scale-105 transition-transform"
+            alt="IsaFlores. Recuerdos que perduran."
+            className="h-14 w-14 sm:h-16 sm:w-16 object-cover rounded-full border border-[#f70071]/15 group-hover:scale-105 transition-transform"
           />
         </a>
 
