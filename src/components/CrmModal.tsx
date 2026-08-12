@@ -108,42 +108,56 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     }
   };
 
-  // Canvas Image Compressor to prevent LocalStorage & Supabase QuotaExceededError
+  // 100% Fail-Safe Image Compressor with Fallback for Mobile (iPhone HEIC / Safari)
   const compressImage = (file: File, callback: (compressedUrl: string) => void) => {
     const reader = new FileReader();
+    reader.onerror = () => {
+      alert('No se pudo leer el archivo. Intenta con otra foto o pega un enlace de imagen.');
+    };
     reader.onload = (event) => {
+      const rawResult = event.target?.result as string;
+      if (!rawResult) return;
+
       const img = new Image();
+      img.onerror = () => {
+        // Fallback: Use raw base64 directly if canvas fails
+        callback(rawResult);
+      };
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 600;
-        const MAX_HEIGHT = 600;
-        let width = img.width;
-        let height = img.height;
+        try {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 600;
+          const MAX_HEIGHT = 600;
+          let width = img.width || 600;
+          let height = img.height || 600;
 
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height = Math.round((height * MAX_WIDTH) / width);
-            width = MAX_WIDTH;
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round((width * MAX_HEIGHT) / height);
+              height = MAX_HEIGHT;
+            }
           }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width = Math.round((width * MAX_HEIGHT) / height);
-            height = MAX_HEIGHT;
-          }
-        }
 
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-          callback(compressedDataUrl);
-        } else {
-          callback(event.target?.result as string);
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            callback(compressedDataUrl || rawResult);
+          } else {
+            callback(rawResult);
+          }
+        } catch (e) {
+          callback(rawResult);
         }
       };
-      img.src = event.target?.result as string;
+      img.src = rawResult;
     };
     reader.readAsDataURL(file);
   };
@@ -155,7 +169,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
       if (slotNum === 1) setImg1(compressedBase64);
       else if (slotNum === 2) setImg2(compressedBase64);
       else if (slotNum === 3) setImg3(compressedBase64);
-      alert(`¡Foto ${slotNum} cargada y optimizada con éxito!`);
+      alert(`¡Foto ${slotNum} cargada con éxito!`);
     });
   };
 
@@ -246,7 +260,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     }
 
     setIsEditingProduct(false);
-    alert(`¡Producto "${name}" guardado en la Base de Datos!`);
+    alert(`¡Producto "${name}" guardado e insertado en la Base de Datos con éxito!`);
   };
 
   const handleDeleteProduct = async (prodId: string) => {
@@ -620,7 +634,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-black text-[#ff96c5] flex items-center gap-1.5">
                             <Image className="w-4 h-4" />
-                            <span>Imágenes del Producto (Subir foto o pegar enlace de imagen)</span>
+                            <span>Imágenes del Producto (Subir foto de galería/cámara o pegar enlace URL)</span>
                           </span>
                         </div>
 
@@ -628,6 +642,8 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                           {([1, 2, 3] as const).map((slotNum) => {
                             const imgVal = slotNum === 1 ? img1 : slotNum === 2 ? img2 : img3;
                             const setImgFn = slotNum === 1 ? setImg1 : slotNum === 2 ? setImg2 : setImg3;
+                            const galleryInputId = `gallery-input-slot-${slotNum}`;
+                            const cameraInputId = `camera-input-slot-${slotNum}`;
 
                             return (
                               <div key={slotNum} className="space-y-2 bg-white/5 p-3 rounded-xl border border-white/10 flex flex-col justify-between">
@@ -646,13 +662,13 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                                     <div className="relative group">
                                       <img src={imgVal} alt={`Foto ${slotNum}`} className="h-24 w-full object-cover rounded-lg border border-white/20" />
                                       <span className="absolute bottom-1 right-1 bg-black/70 text-[8px] text-[#25D366] font-black px-1.5 py-0.5 rounded-md">
-                                        ✓ Lista
+                                        ✓ Cargada
                                       </span>
                                     </div>
                                   ) : (
                                     <div className="h-24 w-full rounded-lg border-2 border-dashed border-white/20 flex flex-col items-center justify-center text-white/40 text-[10px] gap-1 bg-white/5">
                                       <Image className="w-5 h-5 text-white/30" />
-                                      <span>Sin imagen</span>
+                                      <span>Sin foto</span>
                                     </div>
                                   )}
                                 </div>
@@ -670,38 +686,57 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                                     />
                                   </div>
 
-                                  {/* Option B: Direct Slot File Inputs (Gallery & Camera) */}
+                                  {/* Hidden File Inputs triggered by type="button" to prevent form submission issues */}
+                                  <input
+                                    id={galleryInputId}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      handleSlotFileUpload(slotNum, file);
+                                      e.target.value = '';
+                                    }}
+                                    className="hidden"
+                                  />
+
+                                  <input
+                                    id={cameraInputId}
+                                    type="file"
+                                    accept="image/*"
+                                    capture="environment"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      handleSlotFileUpload(slotNum, file);
+                                      e.target.value = '';
+                                    }}
+                                    className="hidden"
+                                  />
+
+                                  {/* Option B: Explicit Action Buttons for Gallery & Camera */}
                                   <div className="grid grid-cols-2 gap-1 pt-1">
-                                    <label className="bg-[#f70071] hover:bg-[#ff1b82] text-white text-[9px] font-black py-1.5 rounded-lg flex items-center justify-center gap-1 cursor-pointer text-center">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        document.getElementById(galleryInputId)?.click();
+                                      }}
+                                      className="bg-[#f70071] hover:bg-[#ff1b82] text-white text-[9px] font-black py-1.5 rounded-lg flex items-center justify-center gap-1 cursor-pointer text-center"
+                                    >
                                       <Upload className="w-3 h-3" />
                                       <span>Galería</span>
-                                      <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => {
-                                          const file = e.target.files?.[0];
-                                          handleSlotFileUpload(slotNum, file);
-                                          e.target.value = '';
-                                        }}
-                                        className="hidden"
-                                      />
-                                    </label>
+                                    </button>
 
-                                    <label className="bg-[#25D366] hover:bg-[#128C7E] text-white text-[9px] font-black py-1.5 rounded-lg flex items-center justify-center gap-1 cursor-pointer text-center">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        document.getElementById(cameraInputId)?.click();
+                                      }}
+                                      className="bg-[#25D366] hover:bg-[#128C7E] text-white text-[9px] font-black py-1.5 rounded-lg flex items-center justify-center gap-1 cursor-pointer text-center"
+                                    >
                                       <Camera className="w-3 h-3" />
                                       <span>Cámara</span>
-                                      <input
-                                        type="file"
-                                        accept="image/*"
-                                        capture="environment"
-                                        onChange={(e) => {
-                                          const file = e.target.files?.[0];
-                                          handleSlotFileUpload(slotNum, file);
-                                          e.target.value = '';
-                                        }}
-                                        className="hidden"
-                                      />
-                                    </label>
+                                    </button>
                                   </div>
                                 </div>
                               </div>
