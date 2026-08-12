@@ -43,10 +43,11 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
   const [passwordInput, setPasswordInput] = useState('');
   const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'custom_bouquet' | 'taxonomy' | 'permissions'>('orders');
 
-  // Database State
+  // Database & Refresh State
   const [orders, setOrders] = useState<DbOrder[]>([]);
   const [productsList, setProductsList] = useState<Product[]>([]);
   const [isEditingProduct, setIsEditingProduct] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Custom Bouquet Editor State
   const [customFlowers, setCustomFlowers] = useState<CustomFlowerOption[]>([]);
@@ -97,6 +98,19 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     setCustomFlowers(loadedCustomFlowers || []);
   };
 
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    await loadDatabaseData();
+    if (onUpdateProductCatalog) {
+      const freshProducts = await db.getProducts();
+      onUpdateProductCatalog(freshProducts || []);
+    }
+    setTimeout(() => {
+      setIsRefreshing(false);
+      alert('¡Base de Datos de Supabase y Catálogo re-sincronizados con éxito!');
+    }, 400);
+  };
+
   if (!isOpen) return null;
 
   const handleLogin = (e: React.FormEvent) => {
@@ -120,7 +134,6 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
 
       const img = new Image();
       img.onerror = () => {
-        // Fallback: Use raw base64 directly if canvas fails
         callback(rawResult);
       };
       img.onload = () => {
@@ -364,9 +377,17 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
           </div>
 
           <div className="flex items-center gap-2">
-            <button onClick={loadDatabaseData} className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white">
-              <RefreshCw className="w-4 h-4 text-[#ff96c5]" />
+            <button
+              type="button"
+              onClick={handleManualRefresh}
+              disabled={isRefreshing}
+              title="Refrescar Base de Datos Supabase"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all cursor-pointer border border-white/20"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-[#ff96c5] ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline text-[10px]">Refrescar BD</span>
             </button>
+
             <button onClick={onClose} className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center">
               <X className="w-5 h-5" />
             </button>
@@ -686,7 +707,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                                     />
                                   </div>
 
-                                  {/* Hidden File Inputs triggered by type="button" to prevent form submission issues */}
+                                  {/* Hidden File Inputs */}
                                   <input
                                     id={galleryInputId}
                                     type="file"
