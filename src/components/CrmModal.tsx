@@ -38,6 +38,13 @@ const AVAILABLE_COLORS = [
   { name: 'Verde Botánico', hex: '#22C55E' },
 ];
 
+const PRESET_FLOWER_IMAGES = [
+  { name: 'Ramo Coral', url: 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800' },
+  { name: 'Girasoles', url: 'https://images.unsplash.com/photo-1597848212624-a19eb35e2651?auto=format&fit=crop&q=80&w=800' },
+  { name: 'Novia Blanco', url: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&q=80&w=800' },
+  { name: 'Caja Rosas', url: 'https://images.unsplash.com/photo-1548625361-185888258385?auto=format&fit=crop&q=80&w=800' },
+];
+
 export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdateProductCatalog }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
@@ -650,13 +657,30 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                         </select>
                       </div>
 
-                      {/* 100% Robust Image Slots with Gallery / Camera Upload & URL Link Input */}
+                      {/* 100% Robust Image Slots with Native Labels and Presets */}
                       <div className="sm:col-span-2 space-y-4 bg-[#2B051C] p-4 sm:p-5 rounded-2xl border border-white/20">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-black text-[#ff96c5] flex items-center gap-1.5">
                             <Image className="w-4 h-4" />
-                            <span>Imágenes del Producto (Subir foto de galería/cámara o pegar enlace URL)</span>
+                            <span>Imágenes del Producto (Subir foto o seleccionar rápida)</span>
                           </span>
+                        </div>
+
+                        {/* Quick Preset Images */}
+                        <div className="space-y-1.5">
+                          <span className="text-[10px] text-white/70 font-bold block">Preset rápido de ejemplo:</span>
+                          <div className="flex flex-wrap gap-2">
+                            {PRESET_FLOWER_IMAGES.map((preset) => (
+                              <button
+                                key={preset.name}
+                                type="button"
+                                onClick={() => setImg1(preset.url)}
+                                className="px-2.5 py-1 bg-white/10 hover:bg-[#f70071] text-white text-[9px] font-bold rounded-lg transition-all"
+                              >
+                                🌸 {preset.name}
+                              </button>
+                            ))}
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -695,19 +719,19 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                                 </div>
 
                                 {/* Option A: Paste Direct Image URL */}
-                                <div className="space-y-1 pt-1 border-t border-white/10">
+                                <div className="space-y-1.5 pt-1 border-t border-white/10">
                                   <div className="flex items-center gap-1 bg-white/10 rounded-lg px-2 py-1 border border-white/20">
                                     <LinkIcon className="w-3 h-3 text-[#ff96c5] shrink-0" />
                                     <input
                                       type="url"
                                       value={imgVal}
                                       onChange={(e) => setImgFn(e.target.value)}
-                                      placeholder="https://enlace-de-foto.com/ramo.jpg"
+                                      placeholder="Pega enlace de foto..."
                                       className="w-full text-[10px] bg-transparent text-white outline-none font-medium"
                                     />
                                   </div>
 
-                                  {/* Hidden File Inputs */}
+                                  {/* Native Inputs with HTML <label htmlFor> for 100% Mobile Browser Compatibility */}
                                   <input
                                     id={galleryInputId}
                                     type="file"
@@ -733,31 +757,22 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                                     className="hidden"
                                   />
 
-                                  {/* Option B: Explicit Action Buttons for Gallery & Camera */}
                                   <div className="grid grid-cols-2 gap-1 pt-1">
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        document.getElementById(galleryInputId)?.click();
-                                      }}
-                                      className="bg-[#f70071] hover:bg-[#ff1b82] text-white text-[9px] font-black py-1.5 rounded-lg flex items-center justify-center gap-1 cursor-pointer text-center"
+                                    <label
+                                      htmlFor={galleryInputId}
+                                      className="bg-[#f70071] hover:bg-[#ff1b82] text-white text-[9px] font-black py-2 rounded-lg flex items-center justify-center gap-1 cursor-pointer text-center select-none active:scale-95 transition-transform"
                                     >
                                       <Upload className="w-3 h-3" />
                                       <span>Galería</span>
-                                    </button>
+                                    </label>
 
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        document.getElementById(cameraInputId)?.click();
-                                      }}
-                                      className="bg-[#25D366] hover:bg-[#128C7E] text-white text-[9px] font-black py-1.5 rounded-lg flex items-center justify-center gap-1 cursor-pointer text-center"
+                                    <label
+                                      htmlFor={cameraInputId}
+                                      className="bg-[#25D366] hover:bg-[#128C7E] text-white text-[9px] font-black py-2 rounded-lg flex items-center justify-center gap-1 cursor-pointer text-center select-none active:scale-95 transition-transform"
                                     >
                                       <Camera className="w-3 h-3" />
                                       <span>Cámara</span>
-                                    </button>
+                                    </label>
                                   </div>
                                 </div>
                               </div>
