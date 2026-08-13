@@ -45,7 +45,7 @@ const PRESET_FLOWER_IMAGES = [
   { name: 'Caja Rosas', url: 'https://images.unsplash.com/photo-1548625361-185888258385?auto=format&fit=crop&q=80&w=800' },
 ];
 
-const EMOJI_OPTIONS = ['💐', '🌻', '💍', '✨', '🎁', '🎨', '🌸', '🌹', '🌿', '🎂', '👑', '🎀'];
+const EMOJI_OPTIONS = ['💐', '🌻', '💍', '✨', '🎁', '🎨', '🌸', '🌹', '🌿', '🎂', '👑', '🎀', '🌷', '🌼', '🌺'];
 
 export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdateProductCatalog }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -310,7 +310,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     );
   };
 
-  // Custom Bouquet Handlers
+  // Custom Bouquet Flower Options Handlers (Add, Edit & Delete)
   const handleOpenAddFlowerOption = () => {
     setEditingFlowerId(null);
     setFlName('');
@@ -318,6 +318,27 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     setFlColorHex('#ff96c5');
     setFlPrice(1500);
     setFlIcon('🌸');
+  };
+
+  const handleOpenEditFlowerOption = (fl: CustomFlowerOption) => {
+    setEditingFlowerId(fl.id);
+    setFlName(fl.name || '');
+    setFlColorName(fl.colorName || '');
+    setFlColorHex(fl.colorHex || '#ff96c5');
+    setFlPrice(fl.pricePerStem || 0);
+    setFlIcon(fl.iconSvg || '🌸');
+  };
+
+  const handleDeleteFlowerOption = async (flId: string) => {
+    const target = customFlowers.find((f) => f.id === flId);
+    if (confirm(`¿Eliminar la flor "${target?.name || 'seleccionada'}" de la Base de Datos?`)) {
+      const updatedList = customFlowers.filter((f) => f.id !== flId);
+      await db.saveCustomFlowers(updatedList);
+      setCustomFlowers(updatedList);
+      if (editingFlowerId === flId) {
+        handleOpenAddFlowerOption();
+      }
+    }
   };
 
   const handleSaveFlowerOption = async (e: React.FormEvent) => {
@@ -344,7 +365,9 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     setCustomFlowers(updatedList);
     setEditingFlowerId(null);
     setFlName('');
-    alert(`¡Opción de flor "${flName}" guardada en la Base de Datos!`);
+    setFlColorName('');
+    setFlPrice(1500);
+    alert(`¡Opción de flor "${flName}" guardada en la Base de Datos con éxito!`);
   };
 
   // Order Status Handler
@@ -1042,47 +1065,154 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
               </div>
             )}
 
-            {/* TAB 3: CUSTOM BOUQUET EDITOR */}
+            {/* TAB 3: CUSTOM BOUQUET EDITOR (Diseña tu Ramo - Con Editar & Eliminar) */}
             {activeTab === 'custom_bouquet' && (
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/20 pb-4 gap-3">
                   <div>
-                    <h4 className="font-syne text-lg sm:text-xl font-black text-white">
-                      Diseña tu Ramo (Variedades, Colores & Precios)
+                    <h4 className="font-syne text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                      <Palette className="w-5 h-5 text-[#25D366]" />
+                      <span>Diseña tu Ramo (Variedades, Colores & Precios por Tallo)</span>
                     </h4>
-                    <span className="text-[10px] text-[#ff96c5] font-bold">Configura los insumos y precios por tallo</span>
+                    <span className="text-[10px] text-[#ff96c5] font-bold">
+                      Agrega o edita las flores y precios que tus clientes pueden elegir en el Atelier personalizable
+                    </span>
                   </div>
                   <button
+                    type="button"
                     onClick={handleOpenAddFlowerOption}
-                    className="bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs uppercase px-4 py-2.5 rounded-full cursor-pointer active:scale-95 transition-all"
+                    className="bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs uppercase px-4 py-2.5 rounded-full cursor-pointer active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-lg"
                   >
-                    + Agregar Flor
+                    <Plus className="w-4 h-4" />
+                    <span>+ Agregar Flor</span>
                   </button>
                 </div>
 
-                <form onSubmit={handleSaveFlowerOption} className="bg-[#42082B] p-4 sm:p-5 rounded-3xl border border-white/20 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <input type="text" required value={flName} onChange={(e) => setFlName(e.target.value)} placeholder="Nombre Flor (Ej: Rosa Limpiapipa)" className="bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none" />
-                    <input type="text" required value={flColorName} onChange={(e) => setFlColorName(e.target.value)} placeholder="Nombre Color (Ej: Fucsia)" className="bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none" />
-                    <input type="number" required value={flPrice} onChange={(e) => setFlPrice(Number(e.target.value))} placeholder="Precio por Tallo ($)" className="bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none" />
+                {/* Form to Add / Edit Flower Option */}
+                <form onSubmit={handleSaveFlowerOption} className="bg-[#42082B] p-4 sm:p-5 rounded-3xl border-2 border-[#25D366]/60 space-y-4 shadow-xl">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                    <h5 className="font-syne text-sm font-black text-white">
+                      {editingFlowerId ? `✏️ Editar Flor: "${flName}"` : '✨ Agregar Nueva Flor al Diseñador'}
+                    </h5>
+                    {editingFlowerId && (
+                      <button
+                        type="button"
+                        onClick={handleOpenAddFlowerOption}
+                        className="text-[10px] font-black text-white/70 hover:text-white bg-white/10 px-2.5 py-1 rounded-full"
+                      >
+                        ✕ Cancelar Edición
+                      </button>
+                    )}
                   </div>
-                  <button type="submit" className="w-full sm:w-auto bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs uppercase px-6 py-3 rounded-xl cursor-pointer active:scale-95 transition-all">
-                    Guardar Flor en BD
-                  </button>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                    {/* Icon Emoji Selector */}
+                    <div className="sm:col-span-2">
+                      <label className="text-[10px] font-bold text-white/70 block mb-1">Icono / Emoji</label>
+                      <select
+                        value={flIcon}
+                        onChange={(e) => setFlIcon(e.target.value)}
+                        className="w-full bg-[#2B051C] border border-white/30 rounded-xl px-3 py-2.5 text-xs font-bold text-white outline-none"
+                      >
+                        {EMOJI_OPTIONS.map((emoji) => (
+                          <option key={emoji} value={emoji}>
+                            {emoji} {emoji}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Flower Name */}
+                    <div className="sm:col-span-4">
+                      <label className="text-[10px] font-bold text-white/70 block mb-1">Nombre de la Flor *</label>
+                      <input
+                        type="text"
+                        required
+                        value={flName}
+                        onChange={(e) => setFlName(e.target.value)}
+                        placeholder="Ej: Rosa Limpiapipa Eternos"
+                        className="w-full bg-white/10 border border-white/30 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white outline-none focus:border-[#25D366]"
+                      />
+                    </div>
+
+                    {/* Color Name */}
+                    <div className="sm:col-span-3">
+                      <label className="text-[10px] font-bold text-white/70 block mb-1">Nombre del Color *</label>
+                      <input
+                        type="text"
+                        required
+                        value={flColorName}
+                        onChange={(e) => setFlColorName(e.target.value)}
+                        placeholder="Ej: Fucsia Pasión"
+                        className="w-full bg-white/10 border border-white/30 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white outline-none focus:border-[#25D366]"
+                      />
+                    </div>
+
+                    {/* Price per Stem */}
+                    <div className="sm:col-span-3">
+                      <label className="text-[10px] font-bold text-white/70 block mb-1">Precio por Tallo ($ CLP) *</label>
+                      <input
+                        type="number"
+                        required
+                        value={flPrice}
+                        onChange={(e) => setFlPrice(Number(e.target.value))}
+                        placeholder="1500"
+                        className="w-full bg-white/10 border border-white/30 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white outline-none focus:border-[#25D366]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="submit"
+                      className="w-full sm:w-auto bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs uppercase px-8 py-3 rounded-xl cursor-pointer active:scale-95 transition-all shadow-lg"
+                    >
+                      💾 {editingFlowerId ? 'Guardar Cambios en la Flor' : 'Guardar Flor en BD'}
+                    </button>
+                  </div>
                 </form>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {customFlowers.map((fl) => (
-                    <div key={fl.id} className="bg-[#42082B] p-3 rounded-2xl border border-white/20 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{fl.iconSvg || '🌸'}</span>
-                        <div>
-                          <h5 className="font-bold text-xs text-white">{fl.name}</h5>
-                          <span className="text-[10px] text-[#ff96c5] block">{fl.colorName} • ${(fl.pricePerStem || 0).toLocaleString('es-CL')} / tallo</span>
+                {/* Custom Flowers Grid with Edit & Delete Buttons */}
+                <div className="space-y-3 pt-2">
+                  <h5 className="font-syne text-sm font-black text-white uppercase tracking-wider">
+                    🌸 Flores Registradas en el Diseñador ({customFlowers.length})
+                  </h5>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {customFlowers.map((fl) => (
+                      <div key={fl.id} className="bg-[#42082B] p-3.5 rounded-2xl border border-white/20 flex items-center justify-between gap-3 shadow-md">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          <span className="text-2xl shrink-0 bg-white/10 p-2 rounded-xl">{fl.iconSvg || '🌸'}</span>
+                          <div className="overflow-hidden">
+                            <h5 className="font-bold text-xs text-white truncate">{fl.name}</h5>
+                            <span className="text-[10px] text-[#ff96c5] font-semibold block">{fl.colorName}</span>
+                            <span className="text-xs font-black text-[#25D366] block">${(fl.pricePerStem || 0).toLocaleString('es-CL')} CLP / tallo</span>
+                          </div>
+                        </div>
+
+                        {/* Touch Actions: Edit & Delete */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditFlowerOption(fl)}
+                            className="bg-white/10 hover:bg-[#f70071] text-white text-[10px] font-black p-2 rounded-xl cursor-pointer active:scale-95 transition-all"
+                            title="Editar esta flor y su precio"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteFlowerOption(fl.id)}
+                            className="bg-red-500/20 hover:bg-red-600 text-white text-[10px] font-black p-2 rounded-xl cursor-pointer active:scale-95 transition-all"
+                            title="Eliminar flor"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
