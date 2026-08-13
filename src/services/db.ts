@@ -25,9 +25,15 @@ export interface CustomFlowerOption {
   iconSvg: string;
 }
 
+export interface TaxonomyConfig {
+  categories: { id: string; label: string; icon: string }[];
+  subcategoriesMap: Record<string, string[]>;
+}
+
 const DB_PRODUCTS_KEY = 'isaflores_db_products_v6';
 const DB_ORDERS_KEY = 'isaflores_db_orders_v6';
 const DB_CUSTOM_FLOWERS_KEY = 'isaflores_db_custom_flowers_v6';
+const DB_TAXONOMY_KEY = 'isaflores_db_taxonomy_v6';
 
 const INITIAL_CUSTOM_FLOWERS: CustomFlowerOption[] = [
   { id: 'girasol', name: 'Girasol Silvestre', colorName: 'Amarillo Girasol', colorHex: '#EAB308', pricePerStem: 1800, iconSvg: '🌻' },
@@ -38,7 +44,7 @@ const INITIAL_CUSTOM_FLOWERS: CustomFlowerOption[] = [
 ];
 
 class DatabaseService {
-  // 100% PERSISTENT PRODUCTS SYNC (BI-DIRECTIONAL SUPABASE CLOUD + SAFE LOCALSTORAGE)
+  // 100% PERSISTENT PRODUCTS SYNC (BI-DIRECTIONAL SUPABASE CLOUD + LOCALSTORAGE)
   async getProducts(): Promise<Product[]> {
     let localProducts: Product[] = [];
     try {
@@ -56,7 +62,10 @@ class DatabaseService {
       if (supabase) {
         const { data, error } = await supabase.from('products').select('*');
         if (!error && data && data.length > 0) {
-          const cloudProducts: Product[] = data.map((p) => ({
+          // Filter out system rows
+          const realData = data.filter((p) => !String(p.id).startsWith('SYS_'));
+
+          const cloudProducts: Product[] = realData.map((p) => ({
             id: String(p.id),
             name: p.name || 'Flor IsaFlores',
             price: Number(p.price) || 14990,
@@ -74,11 +83,11 @@ class DatabaseService {
             tags: [p.category || 'flores', 'flores eternas']
           }));
 
-          // Merge maps: Cloud products first, then local products taking precedence so user additions are NEVER lost
-          const cloudMap = new Map(cloudProducts.map((p) => [p.id, p]));
+          // Cloud products ALWAYS take priority so device B receives changes made on device A!
           const localMap = new Map(localProducts.map((p) => [p.id, p]));
+          const cloudMap = new Map(cloudProducts.map((p) => [p.id, p]));
 
-          const mergedMap = new Map([...cloudMap, ...localMap]);
+          const mergedMap = new Map([...localMap, ...cloudMap]);
           const mergedList = Array.from(mergedMap.values());
 
           this.saveProductsLocal(mergedList);
@@ -281,27 +290,26 @@ class DatabaseService {
     return updatedList;
   }
 
-  async updateOrder(order: DbOrder): Promise<DbOrder[]> {
-    await this.saveOrderCloud(order);
-    let current: DbOrder[] = [];
-    try {
-      const stored = localStorage.getItem(DB_ORDERS_KEY);
-      current = stored ? JSON.parse(stored) : [];
-    } catch (e) {
-      current = [];
-    }
-
-    const updated = current.map((o) => (o.id === order.id ? order : o));
-    this.saveOrdersLocal(updated);
-    return updated;
-  }
-
-  // CUSTOM BOUQUET FLOWER OPTIONS
+  // CUSTOM BOUQUET FLOWER OPTIONS (CROSS-DEVICE CLOUD SYNC)
   async getCustomFlowers(): Promise<CustomFlowerOption[]> {
+    try {
+      if (supabase) {
+        const { data, error } = await supabase.from('products').select('*').eq('id', 'SYS_CUSTOM_FLOWERS').maybeSingle();
+        if (!error && data && data.description) {
+          const parsed: CustomFlowerOption[] = JSON.parse(data.description);
+          if (parsed && parsed.length > 0) {
+            localStorage.setItem(DB_CUSTOM_FLOWERS_KEY, JSON.stringify(parsed));
+            return parsed;
+          }
+        }
+      }
+    } catch (e) {}
+
     try {
       const stored = localStorage.getItem(DB_CUSTOM_FLOWERS_KEY);
       if (stored) return JSON.parse(stored);
     } catch (e) {}
+
     this.saveCustomFlowers(INITIAL_CUSTOM_FLOWERS);
     return INITIAL_CUSTOM_FLOWERS;
   }
@@ -309,6 +317,62 @@ class DatabaseService {
   async saveCustomFlowers(flowers: CustomFlowerOption[]): Promise<boolean> {
     try {
       localStorage.setItem(DB_CUSTOM_FLOWERS_KEY, JSON.stringify(flowers));
+      if (supabase) {
+        await supabase.from('products').upsert({
+          id: 'SYS_CUSTOM_FLOWERS',
+          name: 'Sistema Flores Personalizadas',
+          price: 0,
+          category: 'system',
+          description: JSON.stringify(flowers),
+          badge: 'system',
+          image: 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800',
+          rating: 5
+        });
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // TAXONOMIES (CATEGORIES & SUBCATEGORIES CROSS-DEVICE CLOUD SYNC)
+  async getTaxonomies(): Promise<TaxonomyConfig | null> {
+    try {
+      if (supabase) {
+        const { data, error } = await supabase.from('products').select('*').eq('id', 'SYS_TAXONOMY').maybeSingle();
+        if (!error && data && data.description) {
+          const parsed: TaxonomyConfig = JSON.parse(data.description);
+          if (parsed && parsed.categories && parsed.categories.length > 0) {
+            localStorage.setItem(DB_TAXONOMY_KEY, JSON.stringify(parsed));
+            return parsed;
+          }
+        }
+      }
+    } catch (e) {}
+
+    try {
+      const stored = localStorage.getItem(DB_TAXONOMY_KEY);
+      if (stored) return JSON.parse(stored);
+    } catch (e) {}
+
+    return null;
+  }
+
+  async saveTaxonomies(taxonomies: TaxonomyConfig): Promise<boolean> {
+    try {
+      localStorage.setItem(DB_TAXONOMY_KEY, JSON.stringify(taxonomies));
+      if (supabase) {
+        await supabase.from('products').upsert({
+          id: 'SYS_TAXONOMY',
+          name: 'Sistema Taxonomia Categorias',
+          price: 0,
+          category: 'system',
+          description: JSON.stringify(taxonomies),
+          badge: 'system',
+          image: 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800',
+          rating: 5
+        });
+      }
       return true;
     } catch (e) {
       return false;

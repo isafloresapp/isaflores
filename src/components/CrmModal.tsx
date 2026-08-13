@@ -107,9 +107,15 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     const loadedOrders = await db.getOrders();
     const loadedProducts = await db.getProducts();
     const loadedCustomFlowers = await db.getCustomFlowers();
+    const loadedTaxonomies = await db.getTaxonomies();
+
     setOrders(loadedOrders || []);
     setProductsList(loadedProducts || []);
     setCustomFlowers(loadedCustomFlowers || []);
+    if (loadedTaxonomies) {
+      setCategories(loadedTaxonomies.categories || INITIAL_CATEGORIES);
+      setSubcategoriesMap(loadedTaxonomies.subcategoriesMap || INITIAL_SUBCATEGORIES);
+    }
   };
 
   const handleManualRefresh = async () => {
@@ -121,7 +127,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     }
     setTimeout(() => {
       setIsRefreshing(false);
-      alert('¡Base de Datos y Catálogo sincronizados con éxito!');
+      alert('¡Base de Datos Nube (Supabase) y Catálogo sincronizados con éxito entre Celular y Computador!');
     }, 400);
   };
 
@@ -289,11 +295,11 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     }
 
     setIsEditingProduct(false);
-    alert(`¡Producto "${name}" guardado en la Base de Datos con éxito!`);
+    alert(`¡Producto "${name}" guardado en la Nube Supabase con éxito!`);
   };
 
   const handleDeleteProduct = async (prodId: string) => {
-    if (confirm('¿Eliminar este producto de la Base de Datos?')) {
+    if (confirm('¿Eliminar este producto de la Nube de Supabase?')) {
       const newProducts = await db.deleteProduct(prodId);
       setProductsList(newProducts || []);
       if (onUpdateProductCatalog) {
@@ -331,7 +337,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
 
   const handleDeleteFlowerOption = async (flId: string) => {
     const target = customFlowers.find((f) => f.id === flId);
-    if (confirm(`¿Eliminar la flor "${target?.name || 'seleccionada'}" de la Base de Datos?`)) {
+    if (confirm(`¿Eliminar la flor "${target?.name || 'seleccionada'}" de la Nube de Supabase?`)) {
       const updatedList = customFlowers.filter((f) => f.id !== flId);
       await db.saveCustomFlowers(updatedList);
       setCustomFlowers(updatedList);
@@ -367,7 +373,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     setFlName('');
     setFlColorName('');
     setFlPrice(1500);
-    alert(`¡Opción de flor "${flName}" guardada en la Base de Datos con éxito!`);
+    alert(`¡Opción de flor "${flName}" guardada en la Nube Supabase con éxito!`);
   };
 
   // Order Status Handler
@@ -376,8 +382,8 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     setOrders(updated || []);
   };
 
-  // Taxonomy Handlers (Padre ➔ Hija)
-  const handleAddParentCategory = (e: React.FormEvent) => {
+  // Taxonomy Handlers (Padre ➔ Hija) - Persisted to Supabase Cloud
+  const handleAddParentCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCatName.trim()) return;
     const catId = newCatName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
@@ -386,14 +392,19 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
       return;
     }
     const newCategoryObj = { id: catId, label: newCatName, icon: newCatIcon || '🌸' };
-    setCategories((prev) => [...prev, newCategoryObj]);
-    setSubcategoriesMap((prev) => ({ ...prev, [catId]: ['General'] }));
+    const updatedCategories = [...categories, newCategoryObj];
+    const updatedSubcats = { ...subcategoriesMap, [catId]: ['General'] };
+
+    setCategories(updatedCategories);
+    setSubcategoriesMap(updatedSubcats);
     setExpandedParentCategories((prev) => ({ ...prev, [catId]: true }));
     setNewCatName('');
-    alert(`¡Categoría Padre "${newCatName}" creada con éxito!`);
+
+    await db.saveTaxonomies({ categories: updatedCategories, subcategoriesMap: updatedSubcats });
+    alert(`¡Categoría Padre "${newCatName}" guardada en la Nube Supabase!`);
   };
 
-  const handleAddChildSubcategory = (parentId: string) => {
+  const handleAddChildSubcategory = async (parentId: string) => {
     const subName = (newSubcatInputMap[parentId] || '').trim();
     if (!subName) return;
 
@@ -403,32 +414,40 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
       return;
     }
 
-    setSubcategoriesMap((prev) => ({
-      ...prev,
-      [parentId]: [...(prev[parentId] || []), subName],
-    }));
+    const updatedSubcats = {
+      ...subcategoriesMap,
+      [parentId]: [...(subcategoriesMap[parentId] || []), subName],
+    };
 
+    setSubcategoriesMap(updatedSubcats);
     setNewSubcatInputMap((prev) => ({ ...prev, [parentId]: '' }));
+
+    await db.saveTaxonomies({ categories, subcategoriesMap: updatedSubcats });
   };
 
-  const handleDeleteSubcategory = (parentId: string, subName: string) => {
+  const handleDeleteSubcategory = async (parentId: string, subName: string) => {
     if (confirm(`¿Eliminar la subcategoría "${subName}" de esta categoría padre?`)) {
-      setSubcategoriesMap((prev) => ({
-        ...prev,
-        [parentId]: (prev[parentId] || []).filter((s) => s !== subName),
-      }));
+      const updatedSubcats = {
+        ...subcategoriesMap,
+        [parentId]: (subcategoriesMap[parentId] || []).filter((s) => s !== subName),
+      };
+
+      setSubcategoriesMap(updatedSubcats);
+      await db.saveTaxonomies({ categories, subcategoriesMap: updatedSubcats });
     }
   };
 
-  const handleDeleteParentCategory = (parentId: string) => {
+  const handleDeleteParentCategory = async (parentId: string) => {
     const catName = categories.find((c) => c.id === parentId)?.label || parentId;
     if (confirm(`¿Eliminar la categoría padre "${catName}" y todas sus subcategorías?`)) {
-      setCategories((prev) => prev.filter((c) => c.id !== parentId));
-      setSubcategoriesMap((prev) => {
-        const next = { ...prev };
-        delete next[parentId];
-        return next;
-      });
+      const updatedCategories = categories.filter((c) => c.id !== parentId);
+      const updatedSubcats = { ...subcategoriesMap };
+      delete updatedSubcats[parentId];
+
+      setCategories(updatedCategories);
+      setSubcategoriesMap(updatedSubcats);
+
+      await db.saveTaxonomies({ categories: updatedCategories, subcategoriesMap: updatedSubcats });
     }
   };
 
@@ -466,8 +485,9 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
               <h3 className="font-syne text-lg sm:text-2xl font-black text-white leading-tight">
                 Panel CRM & Base de Datos
               </h3>
-              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-[#25D366] block">
-                Optimizado para Celulares 📱 & Computadores 💻
+              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-[#25D366] block flex items-center gap-1">
+                <RefreshCw className="w-3 h-3 inline text-[#25D366]" />
+                <span>Sincronización Cloud Supabase Real-Time (Celular ↔ PC)</span>
               </span>
             </div>
           </div>
@@ -477,11 +497,11 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
               type="button"
               onClick={handleManualRefresh}
               disabled={isRefreshing}
-              title="Refrescar Base de Datos"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all cursor-pointer border border-white/20 active:scale-95"
+              title="Refrescar y Sincronizar Base de Datos Supabase"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#25D366]/20 hover:bg-[#25D366]/30 text-white text-xs font-bold transition-all cursor-pointer border border-[#25D366]/50 active:scale-95 shadow-md"
             >
-              <RefreshCw className={`w-3.5 h-3.5 text-[#ff96c5] ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline text-[10px]">Refrescar BD</span>
+              <RefreshCw className={`w-3.5 h-3.5 text-[#25D366] ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span className="text-[10px] font-black uppercase">Refrescar Nube</span>
             </button>
 
             <button onClick={onClose} className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer active:scale-95">
@@ -668,7 +688,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                           <span>Gestor de Productos ({filteredProducts.length})</span>
                         </h4>
                         <span className="text-[10px] text-[#ff96c5] font-bold block mt-0.5">
-                          Administra tus productos, precios e imágenes de forma sencilla desde tu celular
+                          Administra tus productos, precios e imágenes de forma sencilla desde tu celular o computador
                         </span>
                       </div>
 
