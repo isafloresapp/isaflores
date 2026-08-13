@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Lock, Users, ShoppingBag, Truck, Calendar, Phone, CheckCircle2, Search, ArrowRight, ShieldCheck, Sparkles, Plus, Edit3, Trash2, Image, Tag, Code, Layers, Check, Camera, Mic, Upload, Settings, Sliders, RefreshCw, Palette, Link as LinkIcon, ChevronDown, ChevronRight, FolderTree, Filter, Save } from 'lucide-react';
+import { X, Lock, Users, ShoppingBag, Truck, Calendar, Phone, CheckCircle2, Search, ArrowRight, ShieldCheck, Sparkles, Plus, Edit3, Trash2, Image, Tag, Code, Layers, Check, Camera, Mic, Upload, Settings, Sliders, RefreshCw, Palette, Link as LinkIcon, ChevronDown, ChevronRight, FolderTree, Filter, Save, Calculator, TrendingUp, DollarSign, Cpu, Percent, Clock, AlertTriangle } from 'lucide-react';
 import { Product } from '../types';
 import { db, DbOrder, CustomFlowerOption } from '../services/db';
 
@@ -52,7 +52,7 @@ const EMOJI_OPTIONS = ['💐', '🌻', '💍', '✨', '🎁', '🎨', '🌸', '�
 export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdateProductCatalog }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
-  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'custom_bouquet' | 'taxonomy'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'custom_bouquet' | 'taxonomy' | 'financial_ai'>('orders');
 
   // Database & Refresh State
   const [orders, setOrders] = useState<DbOrder[]>([]);
@@ -68,6 +68,14 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
   const [flColorHex, setFlColorHex] = useState('#ff96c5');
   const [flPrice, setFlPrice] = useState<number>(1500);
   const [flIcon, setFlIcon] = useState('🌸');
+
+  // Financial AI Calculator State (Motor Lógico de Inteligencia Financiera)
+  const [finNombreFlor, setFinNombreFlor] = useState('Ramo de Rosas Eternas Limpiapipas');
+  const [finCostoMateriales, setFinCostoMateriales] = useState<number>(3500);
+  const [finTiempoMinutos, setFinTiempoMinutos] = useState<number>(45);
+  const [finTarifaHora, setFinTarifaHora] = useState<number>(4000);
+  const [finCostoEmpaque, setFinCostoEmpaque] = useState<number>(800);
+  const [finMargenDeseado, setFinMargenDeseado] = useState<number>(60);
 
   // Taxonomies State (Categorías Padre / Hijas)
   const [categories, setCategories] = useState(INITIAL_CATEGORIES);
@@ -105,6 +113,68 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
   const [sku, setSku] = useState('');
   const [metaTitle, setMetaTitle] = useState('');
   const [metaDescription, setMetaDescription] = useState('');
+
+  // FINANCIAL AI ENGINE CALCULATIONS (Obligatorias según especificaciones)
+  const finCostoLaboral = (finTarifaHora / 60) * finTiempoMinutos;
+  const finCostoBase = finCostoMateriales + finCostoLaboral + finCostoEmpaque;
+  const finCostoOperativoExtra = finCostoBase * 0.05; // 5% herramientas, luz, desgaste
+  const finCostoTotalReal = finCostoBase + finCostoOperativoExtra;
+
+  const finMargenDecimal = finMargenDeseado / 100;
+  const finPrecioSugeridoRaw = finMargenDecimal < 1 ? finCostoTotalReal / (1 - finMargenDecimal) : finCostoTotalReal * 2;
+  const finPrecioSugerido = Math.ceil(finPrecioSugeridoRaw); // Redondeo entero superior
+  const finUtilidadNeta = finPrecioSugerido - finCostoTotalReal;
+  const finGananciaPorMinuto = finTiempoMinutos > 0 ? finUtilidadNeta / finTiempoMinutos : 0;
+
+  let finViabilidad: 'Alta' | 'Media' | 'Baja' = 'Alta';
+  let finAdvertencia = '';
+  if (finMargenDecimal < 0.40) {
+    finViabilidad = 'Baja';
+    finAdvertencia = '⚠️ Margen < 40%: La viabilidad es baja. El trabajo artesanal manual no está siendo bien remunerado.';
+  } else if (finMargenDecimal < 0.55) {
+    finViabilidad = 'Media';
+    finAdvertencia = '⚡ Margen Aceptable: Se sugiere revisar tiempos o insumos para optimizar la rentabilidad.';
+  } else {
+    finViabilidad = 'Alta';
+    finAdvertencia = '✨ Excelente Rentabilidad: El precio cubre holgadamente materiales, mano de obra e imprevistos.';
+  }
+
+  const finSugerenciaComercial = finViabilidad === 'Baja'
+    ? 'Atención: Incrementa la tarifa por hora o reduce minutos de confección para lograr utilidad saludable.'
+    : `Producto rentable. Genera $${Math.round(finGananciaPorMinuto)}/min. Excelente para venta directa e ecommerce.`;
+
+  const finJsonResponse = {
+    producto: {
+      nombre: finNombreFlor,
+      resumen_costos: {
+        materiales_y_empaque: Number((finCostoMateriales + finCostoEmpaque).toFixed(2)),
+        mano_de_obra: Number(finCostoLaboral.toFixed(2)),
+        costos_indirectos: Number(finCostoOperativoExtra.toFixed(2)),
+        total_produccion: Number(finCostoTotalReal.toFixed(2))
+      },
+      pricing: {
+        precio_sugerido: finPrecioSugerido,
+        utilidad_neta_estimada: Number(finUtilidadNeta.toFixed(2)),
+        margen_aplicado: `${finMargenDeseado}%`
+      },
+      metricas_eficiencia: {
+        ganancia_por_minuto: Number(finGananciaPorMinuto.toFixed(2)),
+        viabilidad: finViabilidad
+      },
+      sugerencia_comercial: finSugerenciaComercial
+    }
+  };
+
+  const handleApplyFinProductToCatalog = () => {
+    setEditingId(null);
+    setName(finNombreFlor || 'Ramo Limpiapipas');
+    setPrice(finPrecioSugerido || 14990);
+    setDescription(`Detalles de costos calculados por Motor Financiero IA:\n• Costo Insumos & Empaque: $${Math.round(finCostoMateriales + finCostoEmpaque)} CLP\n• Minutos confección: ${finTiempoMinutos} min\n• Utilidad Neta: $${Math.round(finUtilidadNeta)} CLP (${finMargenDeseado}%)\n• Ganancia por minuto: $${Math.round(finGananciaPorMinuto)} CLP/min`);
+    setBadge('Destacado');
+    setActiveTab('products');
+    setIsEditingProduct(true);
+    alert(`¡Precio sugerido ($${finPrecioSugerido.toLocaleString('es-CL')} CLP) precargado en el Gestor de Productos!`);
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -620,6 +690,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                 >
                   <option value="orders">📋 Cotizaciones ({orders.length})</option>
                   <option value="products">📦 Gestor Productos ({productsList.length})</option>
+                  <option value="financial_ai">🧮 Motor IA Financiero & Precios</option>
                   <option value="custom_bouquet">🌸 Diseña tu Ramo ({customFlowers.length})</option>
                   <option value="taxonomy">🏷️ Categorías Padre e Hijas ({categories.length})</option>
                 </select>
@@ -645,6 +716,16 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                 }`}
               >
                 Gestor Productos ({productsList.length})
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('financial_ai'); setIsEditingProduct(false); }}
+                className={`shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
+                  activeTab === 'financial_ai' ? 'bg-[#EAB308] text-black shadow-lg ring-2 ring-white font-extrabold' : 'bg-white/10 text-white/70 hover:bg-white/20'
+                }`}
+              >
+                <Calculator className="w-4 h-4" />
+                <span>Motor IA Financiero</span>
               </button>
 
               <button
@@ -1155,7 +1236,204 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
               </div>
             )}
 
-            {/* TAB 3: CUSTOM BOUQUET EDITOR (Diseña tu Ramo - Con Editar & Eliminar) */}
+            {/* TAB 3: FINANCIAL AI PRICING ENGINE (Motor Lógico de Inteligencia Financiera) */}
+            {activeTab === 'financial_ai' && (
+              <div className="space-y-6">
+                <div className="border-b border-white/20 pb-4 flex items-center justify-between">
+                  <div>
+                    <h4 className="font-syne text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                      <Calculator className="w-5 h-5 text-[#EAB308]" />
+                      <span>Motor Lógico de Inteligencia Financiera</span>
+                    </h4>
+                    <p className="text-xs text-[#ff96c5] font-bold mt-1">
+                      Algoritmo de cálculo de costos reales, mano de obra, gastos indirectos y margen de utilidad neta para artesanías en limpiapipas.
+                    </p>
+                  </div>
+                  <span className="hidden sm:inline-flex bg-[#EAB308]/20 border border-[#EAB308]/50 text-[#EAB308] text-[10px] font-black uppercase px-3 py-1.5 rounded-full items-center gap-1">
+                    <Cpu className="w-3.5 h-3.5" /> Vertex AI Logic
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  {/* Left Column: Input Form Data */}
+                  <div className="lg:col-span-6 bg-[#42082B] p-5 rounded-3xl border border-white/20 space-y-4 shadow-xl">
+                    <h5 className="font-syne text-sm font-black text-white uppercase tracking-wider flex items-center gap-2 border-b border-white/10 pb-2">
+                      <Sliders className="w-4 h-4 text-[#ff96c5]" />
+                      <span>Parámetros del Producto / Insumos</span>
+                    </h5>
+
+                    {/* Nombre del Ramo */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-white">Nombre de la Flor / Ramo</label>
+                      <input
+                        type="text"
+                        value={finNombreFlor}
+                        onChange={(e) => setFinNombreFlor(e.target.value)}
+                        className="w-full bg-[#2B051C] border border-white/30 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white outline-none focus:border-[#EAB308]"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Costo Materiales */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-white/80">Materiales (Limpiapipas, alambre) ($ CLP)</label>
+                        <input
+                          type="number"
+                          value={finCostoMateriales}
+                          onChange={(e) => setFinCostoMateriales(Number(e.target.value))}
+                          className="w-full bg-[#2B051C] border border-white/30 rounded-xl px-3.5 py-2 text-xs font-bold text-white outline-none focus:border-[#EAB308]"
+                        />
+                      </div>
+
+                      {/* Costo Empaque */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-white/80">Empaque & Tarjetas ($ CLP)</label>
+                        <input
+                          type="number"
+                          value={finCostoEmpaque}
+                          onChange={(e) => setFinCostoEmpaque(Number(e.target.value))}
+                          className="w-full bg-[#2B051C] border border-white/30 rounded-xl px-3.5 py-2 text-xs font-bold text-white outline-none focus:border-[#EAB308]"
+                        />
+                      </div>
+
+                      {/* Tiempo de confección */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-white/80">Tiempo Invertido (Minutos)</label>
+                        <input
+                          type="number"
+                          value={finTiempoMinutos}
+                          onChange={(e) => setFinTiempoMinutos(Number(e.target.value))}
+                          className="w-full bg-[#2B051C] border border-white/30 rounded-xl px-3.5 py-2 text-xs font-bold text-white outline-none focus:border-[#EAB308]"
+                        />
+                      </div>
+
+                      {/* Tarifa Hora Artesano */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-white/80">Tarifa Hora Artesano ($ CLP/hr)</label>
+                        <input
+                          type="number"
+                          value={finTarifaHora}
+                          onChange={(e) => setFinTarifaHora(Number(e.target.value))}
+                          className="w-full bg-[#2B051C] border border-white/30 rounded-xl px-3.5 py-2 text-xs font-bold text-white outline-none focus:border-[#EAB308]"
+                        />
+                      </div>
+
+                      {/* Margen Deseado Slider */}
+                      <div className="sm:col-span-2 space-y-1.5 bg-[#2B051C] p-3 rounded-2xl border border-white/10">
+                        <div className="flex items-center justify-between text-xs font-black">
+                          <span className="text-[#ff96c5]">Margen Deseado de Ganancia:</span>
+                          <span className="text-[#EAB308] text-sm">{finMargenDeseado}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="10"
+                          max="90"
+                          step="5"
+                          value={finMargenDeseado}
+                          onChange={(e) => setFinMargenDeseado(Number(e.target.value))}
+                          className="w-full accent-[#EAB308] cursor-pointer"
+                        />
+                        <div className="flex justify-between text-[9px] text-white/40 font-bold">
+                          <span>10% (Bajo)</span>
+                          <span>40% (Mínimo recomendado)</span>
+                          <span>60% (Óptimo)</span>
+                          <span>90% (Premium)</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Calculated Results & JSON API Output */}
+                  <div className="lg:col-span-6 space-y-4">
+                    {/* Main Pricing Highlight Banner */}
+                    <div className="bg-gradient-to-r from-[#42082B] via-[#2B051C] to-[#42082B] p-5 rounded-3xl border-2 border-[#EAB308] shadow-2xl space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-[#EAB308] bg-[#EAB308]/10 px-3 py-1 rounded-full border border-[#EAB308]/30">
+                          Precio de Venta Sugerido (Redondeado)
+                        </span>
+
+                        <span className={`text-xs font-black px-3 py-1 rounded-full uppercase ${
+                          finViabilidad === 'Alta' ? 'bg-[#25D366] text-white' : finViabilidad === 'Media' ? 'bg-amber-500 text-white' : 'bg-red-500 text-white'
+                        }`}>
+                          Viabilidad: {finViabilidad}
+                        </span>
+                      </div>
+
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-syne text-3xl sm:text-4xl font-black text-[#25D366]">
+                          ${finPrecioSugerido.toLocaleString('es-CL')}
+                        </span>
+                        <span className="text-xs font-bold text-white/70">CLP</span>
+                      </div>
+
+                      <p className="text-xs text-white/80 font-bold italic">
+                        {finAdvertencia}
+                      </p>
+
+                      <div className="pt-2 border-t border-white/10 flex items-center justify-between text-xs">
+                        <span className="text-white/60">Utilidad Neta Estimada:</span>
+                        <span className="font-black text-[#25D366] text-sm">${Math.round(finUtilidadNeta).toLocaleString('es-CL')} CLP</span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-white/60">Ganancia por Minuto:</span>
+                        <span className="font-black text-[#ff96c5]">${Math.round(finGananciaPorMinuto).toLocaleString('es-CL')} CLP / min</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleApplyFinProductToCatalog}
+                        className="w-full bg-[#EAB308] hover:bg-[#facc15] text-black font-black text-xs uppercase tracking-wider py-3.5 rounded-2xl flex items-center justify-center gap-2 shadow-xl cursor-pointer active:scale-95 transition-all mt-2"
+                      >
+                        <Plus className="w-4 h-4 text-black" />
+                        <span>Aplicar este Precio e Crear Producto en Catálogo</span>
+                      </button>
+                    </div>
+
+                    {/* Breakdown Cost Metrics Card */}
+                    <div className="bg-[#42082B] p-4 rounded-2xl border border-white/20 space-y-2 text-xs">
+                      <h6 className="font-syne text-xs font-black uppercase text-white tracking-wider flex items-center gap-1.5">
+                        <TrendingUp className="w-3.5 h-3.5 text-[#ff96c5]" />
+                        <span>Desglose de Costos de Producción</span>
+                      </h6>
+                      <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                        <div className="bg-white/5 p-2 rounded-xl">
+                          <span className="text-white/50 block text-[9px]">Materiales + Empaque:</span>
+                          <span className="font-bold text-white">${(finCostoMateriales + finCostoEmpaque).toLocaleString('es-CL')} CLP</span>
+                        </div>
+                        <div className="bg-white/5 p-2 rounded-xl">
+                          <span className="text-white/50 block text-[9px]">Mano de Obra ({finTiempoMinutos}m):</span>
+                          <span className="font-bold text-white">${Math.round(finCostoLaboral).toLocaleString('es-CL')} CLP</span>
+                        </div>
+                        <div className="bg-white/5 p-2 rounded-xl">
+                          <span className="text-white/50 block text-[9px]">Gastos Indirectos (5% Luz/Lazos):</span>
+                          <span className="font-bold text-[#ff96c5]">${Math.round(finCostoOperativoExtra).toLocaleString('es-CL')} CLP</span>
+                        </div>
+                        <div className="bg-white/5 p-2 rounded-xl">
+                          <span className="text-white/50 block text-[9px]">Costo Total Real:</span>
+                          <span className="font-black text-[#25D366]">${Math.round(finCostoTotalReal).toLocaleString('es-CL')} CLP</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* JSON Format API Output View (Parseable Response) */}
+                    <div className="bg-[#2B051C] p-4 rounded-2xl border border-white/20 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase text-[#ff96c5] flex items-center gap-1">
+                          <Code className="w-3.5 h-3.5" /> Output JSON Integración PWA / Vertex AI
+                        </span>
+                        <span className="text-[9px] text-white/40 font-mono">application/json</span>
+                      </div>
+                      <pre className="bg-[#1A0D18] p-3 rounded-xl text-[10px] font-mono text-[#25D366] overflow-x-auto border border-white/10 leading-relaxed">
+                        {JSON.stringify(finJsonResponse, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: CUSTOM BOUQUET EDITOR (Diseña tu Ramo - Con Editar & Eliminar) */}
             {activeTab === 'custom_bouquet' && (
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/20 pb-4 gap-3">
@@ -1307,7 +1585,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
               </div>
             )}
 
-            {/* TAB 4: TAXONOMY EDITOR (Categorías Padre ➔ Categorías Hijas) */}
+            {/* TAB 5: TAXONOMY EDITOR (Categorías Padre ➔ Categorías Hijas) */}
             {activeTab === 'taxonomy' && (
               <div className="space-y-6">
                 <div className="border-b border-white/20 pb-3">
