@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Lock, Users, ShoppingBag, Truck, Calendar, Phone, CheckCircle2, Search, ArrowRight, ShieldCheck, Sparkles, Plus, Edit3, Trash2, Image, Tag, Code, Layers, Check, Camera, Mic, Upload, Settings, Sliders, RefreshCw, Palette, Link as LinkIcon } from 'lucide-react';
+import { X, Lock, Users, ShoppingBag, Truck, Calendar, Phone, CheckCircle2, Search, ArrowRight, ShieldCheck, Sparkles, Plus, Edit3, Trash2, Image, Tag, Code, Layers, Check, Camera, Mic, Upload, Settings, Sliders, RefreshCw, Palette, Link as LinkIcon, ChevronDown, ChevronRight, FolderTree, Filter } from 'lucide-react';
 import { Product } from '../types';
 import { db, DbOrder, CustomFlowerOption } from '../services/db';
 
@@ -45,10 +45,12 @@ const PRESET_FLOWER_IMAGES = [
   { name: 'Caja Rosas', url: 'https://images.unsplash.com/photo-1548625361-185888258385?auto=format&fit=crop&q=80&w=800' },
 ];
 
+const EMOJI_OPTIONS = ['💐', '🌻', '💍', '✨', '🎁', '🎨', '🌸', '🌹', '🌿', '🎂', '👑', '🎀'];
+
 export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdateProductCatalog }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
-  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'custom_bouquet' | 'taxonomy' | 'permissions'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'custom_bouquet' | 'taxonomy'>('orders');
 
   // Database & Refresh State
   const [orders, setOrders] = useState<DbOrder[]>([]);
@@ -65,12 +67,17 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
   const [flPrice, setFlPrice] = useState<number>(1500);
   const [flIcon, setFlIcon] = useState('🌸');
 
-  // Taxonomies State
+  // Taxonomies State (Categorías Padre / Hijas)
   const [categories, setCategories] = useState(INITIAL_CATEGORIES);
-  const [subcategoriesMap, setSubcategoriesMap] = useState(INITIAL_SUBCATEGORIES);
+  const [subcategoriesMap, setSubcategoriesMap] = useState<Record<string, string[]>>(INITIAL_SUBCATEGORIES);
   const [newCatName, setNewCatName] = useState('');
-  const [newSubcatName, setNewSubcatName] = useState('');
-  const [selectedTaxCategory, setSelectedTaxCategory] = useState('ramos');
+  const [newCatIcon, setNewCatIcon] = useState('🌸');
+  const [newSubcatInputMap, setNewSubcatInputMap] = useState<Record<string, string>>({});
+  const [expandedParentCategories, setExpandedParentCategories] = useState<Record<string, boolean>>({ ramos: true, girasoles: true });
+
+  // Product Filtering & Search State
+  const [searchProductFilter, setSearchProductFilter] = useState('');
+  const [selectedParentFilter, setSelectedParentFilter] = useState('todos');
 
   // Product Add / Edit Form Fields
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -81,7 +88,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
   const [description, setDescription] = useState('');
   const [badge, setBadge] = useState('Nuevo');
   
-  // Image Slots (Up to 3) with Gallery / Camera Upload & Direct URL Link Input
+  // Image Slots
   const [img1, setImg1] = useState('');
   const [img2, setImg2] = useState('');
   const [img3, setImg3] = useState('');
@@ -114,7 +121,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     }
     setTimeout(() => {
       setIsRefreshing(false);
-      alert('¡Base de Datos de Supabase y Catálogo re-sincronizados con éxito!');
+      alert('¡Base de Datos y Catálogo sincronizados con éxito!');
     }, 400);
   };
 
@@ -129,7 +136,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     }
   };
 
-  // 100% Fail-Safe Image Compressor with Fallback for Mobile (iPhone HEIC / Safari)
+  // Image Compressor for Mobile
   const compressImage = (file: File, callback: (compressedUrl: string) => void) => {
     const reader = new FileReader();
     reader.onerror = () => {
@@ -182,7 +189,6 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     reader.readAsDataURL(file);
   };
 
-  // Direct Slot Image File Upload Handler
   const handleSlotFileUpload = (slotNum: 1 | 2 | 3, file: File | undefined) => {
     if (!file) return;
     compressImage(file, (compressedBase64) => {
@@ -198,7 +204,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     const safeName = (productName || 'RAM').slice(0, 3).toUpperCase();
     const newSku = `ISA-${safeName}-${randomNum}`;
     const title = `${productName || 'Producto'} | Flores Eternas IsaFlores Chile`;
-    const metaDesc = `${desc || productName || 'Producto IsaFlores'} - Hecho a mano en Chile con limpiapipas y goma EVA. Despacho gratis en La Florida.`;
+    const metaDesc = `${desc || productName || 'Producto IsaFlores'} - Hecho a mano en Chile con limpiapipas y goma EVA.`;
 
     setSku(newSku);
     setMetaTitle(title);
@@ -209,8 +215,9 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     setEditingId(null);
     setName('');
     setPrice(14990);
-    setCategory(categories[0]?.id || 'ramos');
-    setSubcategory(subcategoriesMap[categories[0]?.id || 'ramos']?.[0] || 'Ramos de Autor');
+    const defaultCat = categories[0]?.id || 'ramos';
+    setCategory(defaultCat);
+    setSubcategory(subcategoriesMap[defaultCat]?.[0] || 'General');
     setDescription('');
     setBadge('Nuevo');
     setImg1('');
@@ -225,8 +232,9 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     setEditingId(prod.id);
     setName(prod.name || '');
     setPrice(prod.price || 0);
-    setCategory(prod.category || 'ramos');
-    setSubcategory((prod as any).subcategory || 'Ramos de Autor');
+    const parentCat = prod.category || categories[0]?.id || 'ramos';
+    setCategory(parentCat);
+    setSubcategory((prod as any).subcategory || subcategoriesMap[parentCat]?.[0] || 'General');
     setDescription(prod.description || '');
     setBadge(prod.badge || 'Destacado');
     setImg1(prod.image || '');
@@ -244,16 +252,17 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     const imageArray = [img1, img2, img3].filter(Boolean);
+    const parentCategoryObj = categories.find((c) => c.id === category);
 
     const updatedProduct: any = {
       id: editingId || `prod-${Date.now()}`,
       name: name || 'Ramo Sin Nombre',
       price: price || 0,
       category: category || 'ramos',
-      categoryLabel: categories.find((c) => c.id === category)?.label || 'Flores',
+      categoryLabel: parentCategoryObj?.label || 'Flores',
       subcategory: subcategory || 'General',
       description: description || '',
-      fullDetails: `${description || ''}\n\n• SKU: ${sku}\n• Categoría: ${category} / ${subcategory}\n• Colores disponibles: ${selectedColors.join(', ')}`,
+      fullDetails: `${description || ''}\n\n• SKU: ${sku}\n• Categoría Padre: ${parentCategoryObj?.label || category}\n• Subcategoría Hija: ${subcategory}\n• Colores disponibles: ${selectedColors.join(', ')}`,
       badge: badge || 'Nuevo',
       image: img1 || 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800',
       images: imageArray,
@@ -280,7 +289,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     }
 
     setIsEditingProduct(false);
-    alert(`¡Producto "${name}" guardado e insertado en la Base de Datos con éxito!`);
+    alert(`¡Producto "${name}" guardado en la Base de Datos con éxito!`);
   };
 
   const handleDeleteProduct = async (prodId: string) => {
@@ -344,58 +353,115 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     setOrders(updated || []);
   };
 
-  const handleAddCategory = () => {
+  // Taxonomy Handlers (Padre ➔ Hija)
+  const handleAddParentCategory = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!newCatName.trim()) return;
-    const catId = (newCatName || '').toLowerCase().replace(/\s+/g, '-');
-    setCategories((prev) => [...prev, { id: catId, label: newCatName, icon: '🌸' }]);
+    const catId = newCatName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    if (categories.some((c) => c.id === catId)) {
+      alert('Esta categoría padre ya existe.');
+      return;
+    }
+    const newCategoryObj = { id: catId, label: newCatName, icon: newCatIcon || '🌸' };
+    setCategories((prev) => [...prev, newCategoryObj]);
     setSubcategoriesMap((prev) => ({ ...prev, [catId]: ['General'] }));
+    setExpandedParentCategories((prev) => ({ ...prev, [catId]: true }));
     setNewCatName('');
-    alert(`¡Categoría "${newCatName}" creada con éxito!`);
+    alert(`¡Categoría Padre "${newCatName}" creada con éxito!`);
   };
 
-  const handleAddSubcategory = () => {
-    if (!newSubcatName.trim()) return;
+  const handleAddChildSubcategory = (parentId: string) => {
+    const subName = (newSubcatInputMap[parentId] || '').trim();
+    if (!subName) return;
+
+    const existingSubcats = subcategoriesMap[parentId] || [];
+    if (existingSubcats.includes(subName)) {
+      alert('Esta subcategoría ya existe dentro de esta categoría padre.');
+      return;
+    }
+
     setSubcategoriesMap((prev) => ({
       ...prev,
-      [selectedTaxCategory]: [...(prev[selectedTaxCategory] || []), newSubcatName]
+      [parentId]: [...(prev[parentId] || []), subName],
     }));
-    setNewSubcatName('');
-    alert(`¡Subcategoría agregada a "${selectedTaxCategory}"!`);
+
+    setNewSubcatInputMap((prev) => ({ ...prev, [parentId]: '' }));
   };
+
+  const handleDeleteSubcategory = (parentId: string, subName: string) => {
+    if (confirm(`¿Eliminar la subcategoría "${subName}" de esta categoría padre?`)) {
+      setSubcategoriesMap((prev) => ({
+        ...prev,
+        [parentId]: (prev[parentId] || []).filter((s) => s !== subName),
+      }));
+    }
+  };
+
+  const handleDeleteParentCategory = (parentId: string) => {
+    const catName = categories.find((c) => c.id === parentId)?.label || parentId;
+    if (confirm(`¿Eliminar la categoría padre "${catName}" y todas sus subcategorías?`)) {
+      setCategories((prev) => prev.filter((c) => c.id !== parentId));
+      setSubcategoriesMap((prev) => {
+        const next = { ...prev };
+        delete next[parentId];
+        return next;
+      });
+    }
+  };
+
+  const toggleExpandParentCategory = (parentId: string) => {
+    setExpandedParentCategories((prev) => ({
+      ...prev,
+      [parentId]: !prev[parentId],
+    }));
+  };
+
+  // Filtered Products List
+  const filteredProducts = productsList.filter((prod) => {
+    const matchesSearch =
+      (prod.name || '').toLowerCase().includes(searchProductFilter.toLowerCase()) ||
+      ((prod as any).sku || '').toLowerCase().includes(searchProductFilter.toLowerCase()) ||
+      (prod.categoryLabel || prod.category || '').toLowerCase().includes(searchProductFilter.toLowerCase());
+
+    const matchesCategory =
+      selectedParentFilter === 'todos' || prod.category === selectedParentFilter;
+
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-dropdown">
-      <div className="bg-[#2B051C] border-2 border-[#f70071]/40 rounded-3xl max-w-5xl w-full max-h-[95vh] overflow-y-auto shadow-2xl text-white text-left relative">
+      <div className="bg-[#2B051C] border-2 border-[#f70071]/40 rounded-3xl max-w-5xl w-full max-h-[95vh] overflow-y-auto shadow-2xl text-white text-left relative flex flex-col">
         
         {/* Header */}
-        <div className="sticky top-0 z-20 bg-[#2B051C]/95 backdrop-blur-xl p-4 sm:p-6 border-b border-white/20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#f70071] text-white flex items-center justify-center shadow-lg shrink-0">
-              <ShieldCheck className="w-6 h-6" />
+        <div className="sticky top-0 z-30 bg-[#2B051C]/95 backdrop-blur-xl p-3 sm:p-6 border-b border-white/20 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#f70071] text-white flex items-center justify-center shadow-lg shrink-0">
+              <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h3 className="font-syne text-xl sm:text-2xl font-black text-white">
-                Base de Datos & Editor CRM IsaFlores
+              <h3 className="font-syne text-lg sm:text-2xl font-black text-white leading-tight">
+                Panel CRM & Base de Datos
               </h3>
               <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-[#25D366] block">
-                Optimizado para Celulares & Computadores
+                Optimizado para Celulares 📱 & Computadores 💻
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               type="button"
               onClick={handleManualRefresh}
               disabled={isRefreshing}
-              title="Refrescar Base de Datos Supabase"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all cursor-pointer border border-white/20"
+              title="Refrescar Base de Datos"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all cursor-pointer border border-white/20 active:scale-95"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-[#ff96c5] ${isRefreshing ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline text-[10px]">Refrescar BD</span>
             </button>
 
-            <button onClick={onClose} className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center">
+            <button onClick={onClose} className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer active:scale-95">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -403,31 +469,57 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
 
         {/* Auth Gate */}
         {!isAuthenticated ? (
-          <form onSubmit={handleLogin} className="p-8 sm:p-10 text-center max-w-md mx-auto space-y-6">
+          <form onSubmit={handleLogin} className="p-6 sm:p-10 text-center max-w-md mx-auto space-y-6 my-auto">
             <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto border border-white/20">
               <Lock className="w-8 h-8 text-[#ff96c5]" />
             </div>
             <h4 className="font-syne text-2xl font-black text-white">Acceso Privado CRM</h4>
+            <p className="text-xs text-white/70">Ingresa tu clave de administrador para gestionar cotizaciones y catálogo.</p>
             <input
               type="password"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
-              placeholder="Contraseña..."
-              className="w-full bg-white/10 border border-white/30 rounded-xl px-4 py-3 text-xs font-bold text-white text-center"
+              placeholder="Contraseña de administrador..."
+              className="w-full bg-white/10 border border-white/30 rounded-2xl px-4 py-3 text-xs font-bold text-white text-center outline-none focus:border-[#f70071]"
             />
-            <button type="submit" className="w-full bg-[#f70071] text-white font-black text-xs uppercase py-3.5 rounded-full shadow-lg">
+            <button type="submit" className="w-full bg-[#f70071] hover:bg-[#ff1b82] text-white font-black text-xs uppercase py-3.5 rounded-full shadow-lg cursor-pointer active:scale-95 transition-all">
               Ingresar al CRM
             </button>
           </form>
         ) : (
           /* Authenticated Panel */
-          <div className="p-4 sm:p-8 space-y-6">
-            {/* Navigation Tabs (Scrollable on Mobile) */}
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar border-b border-white/20 pb-3">
+          <div className="p-3 sm:p-8 space-y-6 flex-1">
+
+            {/* Mobile Touch-Friendly Dropdown Selector (Visible on Mobile) */}
+            <div className="block sm:hidden pb-3 border-b border-white/20">
+              <label className="text-[10px] font-black uppercase text-[#ff96c5] block mb-1.5 flex items-center gap-1">
+                <Sliders className="w-3.5 h-3.5" />
+                <span>Sección del CRM</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={activeTab}
+                  onChange={(e) => {
+                    setActiveTab(e.target.value as any);
+                    setIsEditingProduct(false);
+                  }}
+                  className="w-full bg-[#42082B] text-white border-2 border-[#f70071] rounded-2xl px-4 py-3 text-xs font-black outline-none shadow-lg appearance-none cursor-pointer"
+                >
+                  <option value="orders">📋 Cotizaciones ({orders.length})</option>
+                  <option value="products">📦 Gestor Productos ({productsList.length})</option>
+                  <option value="custom_bouquet">🌸 Diseña tu Ramo ({customFlowers.length})</option>
+                  <option value="taxonomy">🏷️ Categorías Padre e Hijas ({categories.length})</option>
+                </select>
+                <ChevronDown className="w-4 h-4 text-[#ff96c5] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Desktop Pill Tabs (Visible on Tablet/Desktop) */}
+            <div className="hidden sm:flex items-center gap-2 overflow-x-auto no-scrollbar border-b border-white/20 pb-3">
               <button
                 onClick={() => { setActiveTab('orders'); setIsEditingProduct(false); }}
                 className={`shrink-0 px-4 py-2.5 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
-                  activeTab === 'orders' ? 'bg-[#f70071] text-white shadow-lg' : 'bg-white/10 text-white/70'
+                  activeTab === 'orders' ? 'bg-[#f70071] text-white shadow-lg' : 'bg-white/10 text-white/70 hover:bg-white/20'
                 }`}
               >
                 Cotizaciones ({orders.length})
@@ -436,7 +528,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
               <button
                 onClick={() => setActiveTab('products')}
                 className={`shrink-0 px-4 py-2.5 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
-                  activeTab === 'products' ? 'bg-[#25D366] text-white shadow-lg ring-2 ring-white' : 'bg-white/10 text-white/70'
+                  activeTab === 'products' ? 'bg-[#25D366] text-white shadow-lg ring-2 ring-white' : 'bg-white/10 text-white/70 hover:bg-white/20'
                 }`}
               >
                 Gestor Productos ({productsList.length})
@@ -445,7 +537,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
               <button
                 onClick={() => { setActiveTab('custom_bouquet'); setIsEditingProduct(false); }}
                 className={`shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
-                  activeTab === 'custom_bouquet' ? 'bg-[#25D366] text-white shadow-lg' : 'bg-white/10 text-white/70'
+                  activeTab === 'custom_bouquet' ? 'bg-[#25D366] text-white shadow-lg' : 'bg-white/10 text-white/70 hover:bg-white/20'
                 }`}
               >
                 <Palette className="w-4 h-4" />
@@ -455,132 +547,219 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
               <button
                 onClick={() => { setActiveTab('taxonomy'); setIsEditingProduct(false); }}
                 className={`shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
-                  activeTab === 'taxonomy' ? 'bg-[#f70071] text-white shadow-lg' : 'bg-white/10 text-white/70'
+                  activeTab === 'taxonomy' ? 'bg-[#f70071] text-white shadow-lg' : 'bg-white/10 text-white/70 hover:bg-white/20'
                 }`}
               >
-                <Sliders className="w-4 h-4" />
-                <span>Categorías</span>
+                <FolderTree className="w-4 h-4" />
+                <span>Categorías Padre e Hijas</span>
               </button>
             </div>
 
             {/* TAB 1: ORDERS */}
             {activeTab === 'orders' && (
               <div className="space-y-4">
-                <h4 className="font-syne text-xl font-black text-white">Cotizaciones Registradas</h4>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[650px]">
-                    <thead>
-                      <tr className="border-b border-white/20 text-[10px] font-black uppercase text-[#ff96c5]">
-                        <th className="pb-3">ID / Cliente</th>
-                        <th className="pb-3">Teléfono</th>
-                        <th className="pb-3">Monto Total</th>
-                        <th className="pb-3">Estado BD Desplegable</th>
-                        <th className="pb-3 text-right">Acción</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/10 text-xs font-bold">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-syne text-lg sm:text-xl font-black text-white">Cotizaciones Registradas ({orders.length})</h4>
+                </div>
+
+                {orders.length === 0 ? (
+                  <div className="text-center p-8 bg-white/5 rounded-2xl border border-white/10 space-y-2">
+                    <ShoppingBag className="w-10 h-10 text-white/40 mx-auto" />
+                    <p className="text-xs text-white/70 font-bold">No hay cotizaciones registradas en la Base de Datos.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Mobile Orders Cards */}
+                    <div className="grid grid-cols-1 gap-3">
                       {orders.map((o) => {
                         const safePhone = (o.phone || '').replace(/[^0-9]/g, '');
                         const safeTotal = (o.total || 0).toLocaleString('es-CL');
                         return (
-                          <tr key={o.id || Math.random().toString()}>
-                            <td className="py-3"><span className="text-[#ff96c5] block">{o.id || 'ORD-00'}</span>{o.customerName || 'Cliente'}</td>
-                            <td className="py-3">{o.phone || 'Sin teléfono'}</td>
-                            <td className="py-3 text-[#ffc0dc]">${safeTotal}</td>
-                            <td className="py-3">
-                              <select
-                                value={o.status || 'pendiente'}
-                                onChange={(e) => handleStatusChange(o.id, e.target.value as any)}
-                                className="bg-[#2B051C] text-xs font-bold border border-white/30 rounded-xl px-2 py-1"
+                          <div key={o.id || Math.random().toString()} className="bg-[#42082B] p-4 rounded-2xl border border-white/20 space-y-3">
+                            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                              <div>
+                                <span className="text-[10px] font-black text-[#ff96c5] uppercase block">{o.id || 'ORD-00'}</span>
+                                <h5 className="font-syne text-sm font-bold text-white">{o.customerName || 'Cliente'}</h5>
+                              </div>
+                              <span className="text-sm font-black text-[#25D366] bg-[#25D366]/10 px-3 py-1 rounded-full border border-[#25D366]/30">
+                                ${safeTotal} CLP
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-white/80">
+                              <div>
+                                <span className="text-[10px] font-bold text-white/50 block">Teléfono & Dirección:</span>
+                                <p className="font-semibold">{o.phone || 'Sin teléfono'}</p>
+                                <p className="text-[11px] text-white/60 truncate">{o.addressComuna || 'Sin dirección'}</p>
+                              </div>
+                              <div>
+                                <span className="text-[10px] font-bold text-white/50 block">Detalles:</span>
+                                <p className="text-[11px] text-[#ff96c5] truncate">{o.productName || 'Ramo personal'}</p>
+                                {o.notes && <p className="text-[10px] italic text-white/60">"{o.notes}"</p>}
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2 border-t border-white/10">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-white/60">Estado:</span>
+                                <select
+                                  value={o.status || 'pendiente'}
+                                  onChange={(e) => handleStatusChange(o.id, e.target.value as any)}
+                                  className="flex-1 sm:flex-none bg-[#2B051C] text-xs font-bold text-white border border-white/30 rounded-xl px-3 py-1.5 outline-none"
+                                >
+                                  <option value="pendiente">⏳ Pendiente</option>
+                                  <option value="en_preparacion">⚙️ En Taller</option>
+                                  <option value="despachado">✓ Despachado</option>
+                                  <option value="cancelado">❌ Cancelado</option>
+                                </select>
+                              </div>
+
+                              <a
+                                href={`https://wa.me/${safePhone}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-[#25D366] hover:bg-[#128C7E] text-white text-xs font-black px-4 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all text-center"
                               >
-                                <option value="pendiente">⏳ Pendiente</option>
-                                <option value="en_preparacion">⚙️ En Taller</option>
-                                <option value="despachado">✓ Despachado</option>
-                                <option value="cancelado">❌ Cancelado</option>
-                              </select>
-                            </td>
-                            <td className="py-3 text-right">
-                              <a href={`https://wa.me/${safePhone}`} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] text-white text-[10px] font-black px-3 py-1.5 rounded-full">
-                                WhatsApp
+                                <span>Contactar por WhatsApp</span>
                               </a>
-                            </td>
-                          </tr>
+                            </div>
+                          </div>
                         );
                       })}
-                    </tbody>
-                  </table>
-                </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
             {/* TAB 2: PRODUCTS MANAGER */}
             {activeTab === 'products' && (
-              <div className="space-y-6">
+              <div className="space-y-5">
                 {!isEditingProduct ? (
-                  /* Products List & Prominent Mobile Action Button */
+                  /* Products List View */
                   <div className="space-y-4">
-                    <div className="bg-[#42082B] p-4 rounded-2xl border-2 border-[#25D366] flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl">
+                    <div className="bg-[#42082B] p-4 sm:p-5 rounded-3xl border-2 border-[#25D366] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shadow-xl">
                       <div>
-                        <h4 className="font-syne text-lg sm:text-xl font-black text-white">
-                          Catálogo de Productos ({productsList.length})
+                        <h4 className="font-syne text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                          <ShoppingBag className="w-5 h-5 text-[#25D366]" />
+                          <span>Gestor de Productos ({filteredProducts.length})</span>
                         </h4>
-                        <span className="text-[10px] text-[#ff96c5] font-bold block">
-                          Agrega o edita flores con foto de tu celular o pega un enlace de imagen
+                        <span className="text-[10px] text-[#ff96c5] font-bold block mt-0.5">
+                          Administra tus productos, precios e imágenes de forma sencilla desde tu celular
                         </span>
                       </div>
 
                       <button
                         onClick={handleOpenAddProduct}
-                        className="w-full sm:w-auto bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs uppercase tracking-wider px-6 py-3.5 rounded-full flex items-center justify-center gap-2 shadow-2xl cursor-pointer transform active:scale-95 transition-all"
+                        className="w-full sm:w-auto bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs uppercase tracking-wider px-6 py-3.5 rounded-2xl flex items-center justify-center gap-2 shadow-2xl cursor-pointer transform active:scale-95 transition-all shrink-0"
                       >
                         <Plus className="w-5 h-5 text-white" />
-                        <span>+ Agregar Nuevo Producto</span>
+                        <span>+ Crear Producto</span>
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {productsList.map((prod) => (
-                        <div key={prod.id} className="bg-[#42082B] p-4 rounded-2xl border border-white/20 flex flex-col justify-between space-y-3">
-                          <div className="flex gap-3">
-                            <img src={prod.image} alt={prod.name} className="w-16 h-16 object-cover rounded-xl border border-white/20 shrink-0" />
-                            <div className="overflow-hidden">
-                              <span className="text-[9px] font-black text-[#ff96c5] block uppercase">{prod.categoryLabel || prod.category}</span>
-                              <h5 className="font-syne text-sm font-bold text-white truncate">{prod.name}</h5>
-                              <span className="text-xs font-black text-[#ffc0dc]">${(prod.price || 0).toLocaleString('es-CL')} CLP</span>
-                              <span className="text-[9px] text-white/50 block">SKU: {(prod as any).sku || `ISA-${(prod.id || 'PROD').slice(0, 4).toUpperCase()}-2026`}</span>
-                            </div>
-                          </div>
+                    {/* Filter & Search Bar */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-white/5 p-3 rounded-2xl border border-white/10">
+                      {/* Search Box */}
+                      <div className="relative flex items-center">
+                        <Search className="w-4 h-4 text-white/50 absolute left-3 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={searchProductFilter}
+                          onChange={(e) => setSearchProductFilter(e.target.value)}
+                          placeholder="Buscar producto por nombre o SKU..."
+                          className="w-full bg-[#2B051C] border border-white/20 rounded-xl pl-9 pr-4 py-2 text-xs font-bold text-white outline-none focus:border-[#f70071]"
+                        />
+                      </div>
 
-                          <div className="flex items-center gap-2 pt-2 border-t border-white/10">
-                            <button
-                              onClick={() => handleOpenEditProduct(prod)}
-                              className="flex-1 bg-white/10 hover:bg-[#f70071] text-white text-[10px] font-black py-2 rounded-xl flex items-center justify-center gap-1 cursor-pointer transition-colors"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                              <span>Editar</span>
-                            </button>
-                            <button
-                              onClick={() => handleDeleteProduct(prod.id)}
-                              className="bg-red-500/20 hover:bg-red-600 text-white text-[10px] font-black p-2 rounded-xl cursor-pointer transition-colors"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                      {/* Dropdown Filter by Parent Category */}
+                      <div className="relative flex items-center">
+                        <Filter className="w-4 h-4 text-[#ff96c5] absolute left-3 pointer-events-none" />
+                        <select
+                          value={selectedParentFilter}
+                          onChange={(e) => setSelectedParentFilter(e.target.value)}
+                          className="w-full bg-[#2B051C] border border-white/20 rounded-xl pl-9 pr-8 py-2 text-xs font-bold text-white outline-none appearance-none cursor-pointer"
+                        >
+                          <option value="todos">📦 Todas las Categorías Padre ({productsList.length})</option>
+                          {categories.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.icon} {c.label} ({productsList.filter((p) => p.category === c.id).length})
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="w-4 h-4 text-white/50 absolute right-3 pointer-events-none" />
+                      </div>
                     </div>
+
+                    {/* Products Grid */}
+                    {filteredProducts.length === 0 ? (
+                      <div className="text-center p-8 bg-white/5 rounded-2xl border border-white/10">
+                        <p className="text-xs text-white/70 font-bold">No se encontraron productos con los filtros aplicados.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {filteredProducts.map((prod) => {
+                          const parentCat = categories.find((c) => c.id === prod.category);
+                          const subcatName = (prod as any).subcategory || 'General';
+
+                          return (
+                            <div key={prod.id} className="bg-[#42082B] p-4 rounded-2xl border border-white/20 flex flex-col justify-between space-y-3 shadow-md">
+                              <div className="flex gap-3">
+                                <img src={prod.image} alt={prod.name} className="w-20 h-20 object-cover rounded-xl border border-white/20 shrink-0" />
+                                <div className="overflow-hidden space-y-0.5">
+                                  <div className="flex items-center gap-1 flex-wrap">
+                                    <span className="text-[9px] font-black text-[#ff96c5] uppercase bg-white/10 px-1.5 py-0.5 rounded">
+                                      {parentCat?.icon || '💐'} {parentCat?.label || prod.category}
+                                    </span>
+                                    <span className="text-[9px] font-bold text-white/70 bg-white/5 px-1.5 py-0.5 rounded">
+                                      {subcatName}
+                                    </span>
+                                  </div>
+                                  <h5 className="font-syne text-sm font-bold text-white truncate pt-1">{prod.name}</h5>
+                                  <span className="text-sm font-black text-[#25D366] block">${(prod.price || 0).toLocaleString('es-CL')} CLP</span>
+                                  <span className="text-[9px] text-white/50 block">SKU: {(prod as any).sku || `ISA-${(prod.id || 'PROD').slice(0, 4).toUpperCase()}-2026`}</span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditProduct(prod)}
+                                  className="flex-1 bg-white/10 hover:bg-[#f70071] text-white text-xs font-black py-2.5 rounded-xl flex items-center justify-center gap-1 cursor-pointer active:scale-95 transition-all"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                  <span>Editar</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteProduct(prod.id)}
+                                  className="bg-red-500/20 hover:bg-red-600 text-white text-xs font-black p-2.5 rounded-xl cursor-pointer active:scale-95 transition-all"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   /* Add / Edit Product Form */
                   <form onSubmit={handleSaveProduct} className="bg-[#42082B] p-4 sm:p-6 rounded-3xl border border-white/20 space-y-6">
                     <div className="flex items-center justify-between border-b border-white/20 pb-4">
-                      <h4 className="font-syne text-lg sm:text-xl font-black text-white">
-                        {editingId ? `Editar: ${name}` : '✨ Crear Nuevo Producto'}
-                      </h4>
+                      <div>
+                        <h4 className="font-syne text-lg sm:text-xl font-black text-white">
+                          {editingId ? `Editar: ${name}` : '✨ Crear Nuevo Producto'}
+                        </h4>
+                        <span className="text-[10px] text-[#ff96c5] font-bold block">
+                          Formulario optimizado con jerarquía de categorías Padre y Subcategorías Hijas
+                        </span>
+                      </div>
                       <button
                         type="button"
                         onClick={() => setIsEditingProduct(false)}
-                        className="text-xs font-black text-white/70 hover:text-white"
+                        className="text-xs font-black text-white/70 hover:text-white bg-white/10 px-3 py-1.5 rounded-full"
                       >
                         ✕ Cancelar
                       </button>
@@ -615,58 +794,79 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                         />
                       </div>
 
-                      {/* Category Selection Dropdown <select> */}
+                      {/* SIMPLIFIED CASCADED CATEGORIES: PARENT CATEGORY */}
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-[#ff96c5] flex items-center gap-1.5">
-                          <Sliders className="w-3.5 h-3.5" />
-                          <span>Categoría Principal *</span>
+                          <FolderTree className="w-3.5 h-3.5" />
+                          <span>1. Categoría Padre *</span>
                         </label>
-                        <select
-                          value={category}
-                          onChange={(e) => {
-                            const newCat = e.target.value;
-                            setCategory(newCat);
-                            setSubcategory(subcategoriesMap[newCat]?.[0] || 'General');
-                          }}
-                          className="w-full bg-[#2B051C] border border-white/30 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none focus:border-[#f70071]"
-                        >
-                          {categories.map((c) => (
-                            <option key={c.id} value={c.id} className="bg-[#2B051C] text-white">
-                              {c.icon} {c.label}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="relative">
+                          <select
+                            value={category}
+                            onChange={(e) => {
+                              const newCat = e.target.value;
+                              setCategory(newCat);
+                              const subcats = subcategoriesMap[newCat] || ['General'];
+                              setSubcategory(subcats[0] || 'General');
+                            }}
+                            className="w-full bg-[#2B051C] border-2 border-[#f70071]/60 rounded-xl px-4 py-2.5 text-xs font-black text-white outline-none appearance-none cursor-pointer"
+                          >
+                            {categories.map((c) => (
+                              <option key={c.id} value={c.id} className="bg-[#2B051C] text-white">
+                                {c.icon} {c.label}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="w-4 h-4 text-[#ff96c5] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
                       </div>
 
-                      {/* Subcategory Selection Dropdown <select> */}
+                      {/* SIMPLIFIED CASCADED CATEGORIES: CHILD SUBCATEGORY */}
                       <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-[#ff96c5] flex items-center gap-1.5">
+                        <label className="text-xs font-bold text-[#ffc0dc] flex items-center gap-1.5">
                           <Tag className="w-3.5 h-3.5" />
-                          <span>Subcategoría *</span>
+                          <span>2. Subcategoría Hija *</span>
                         </label>
-                        <select
-                          value={subcategory}
-                          onChange={(e) => setSubcategory(e.target.value)}
-                          className="w-full bg-[#2B051C] border border-white/30 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none focus:border-[#f70071]"
-                        >
-                          {(subcategoriesMap[category] || ['General']).map((sub) => (
-                            <option key={sub} value={sub} className="bg-[#2B051C] text-white">
-                              • {sub}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="relative">
+                          <select
+                            value={subcategory}
+                            onChange={(e) => setSubcategory(e.target.value)}
+                            className="w-full bg-[#2B051C] border-2 border-white/30 rounded-xl px-4 py-2.5 text-xs font-black text-white outline-none appearance-none cursor-pointer"
+                          >
+                            {(subcategoriesMap[category] || ['General']).map((sub) => (
+                              <option key={sub} value={sub} className="bg-[#2B051C] text-white">
+                                • {sub}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="w-4 h-4 text-white/50 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
                       </div>
 
-                      {/* 100% Robust Image Slots with Native Labels and Presets */}
+                      {/* Breadcrumb Tag Indicator */}
+                      <div className="sm:col-span-2 bg-white/5 p-2.5 rounded-xl border border-white/10 flex items-center gap-2 text-xs">
+                        <span className="text-[10px] font-bold text-white/60">Jerarquía Seleccionada:</span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="bg-[#f70071] text-white font-black text-[10px] px-2 py-0.5 rounded-md">
+                            {categories.find((c) => c.id === category)?.icon} {categories.find((c) => c.id === category)?.label}
+                          </span>
+                          <span className="text-white/40">➔</span>
+                          <span className="bg-[#25D366] text-white font-black text-[10px] px-2 py-0.5 rounded-md">
+                            {subcategory}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Image Slots */}
                       <div className="sm:col-span-2 space-y-4 bg-[#2B051C] p-4 sm:p-5 rounded-2xl border border-white/20">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-black text-[#ff96c5] flex items-center gap-1.5">
                             <Image className="w-4 h-4" />
-                            <span>Imágenes del Producto (Subir foto o seleccionar rápida)</span>
+                            <span>Imágenes del Producto (Galería / Cámara / URL)</span>
                           </span>
                         </div>
 
-                        {/* Quick Preset Images */}
+                        {/* Presets */}
                         <div className="space-y-1.5">
                           <span className="text-[10px] text-white/70 font-bold block">Preset rápido de ejemplo:</span>
                           <div className="flex flex-wrap gap-2">
@@ -675,7 +875,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                                 key={preset.name}
                                 type="button"
                                 onClick={() => setImg1(preset.url)}
-                                className="px-2.5 py-1 bg-white/10 hover:bg-[#f70071] text-white text-[9px] font-bold rounded-lg transition-all"
+                                className="px-2.5 py-1 bg-white/10 hover:bg-[#f70071] text-white text-[9px] font-bold rounded-lg transition-all cursor-pointer"
                               >
                                 🌸 {preset.name}
                               </button>
@@ -702,7 +902,6 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                                     )}
                                   </div>
 
-                                  {/* Thumbnail Preview */}
                                   {imgVal ? (
                                     <div className="relative group">
                                       <img src={imgVal} alt={`Foto ${slotNum}`} className="h-24 w-full object-cover rounded-lg border border-white/20" />
@@ -718,7 +917,6 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                                   )}
                                 </div>
 
-                                {/* Option A: Paste Direct Image URL */}
                                 <div className="space-y-1.5 pt-1 border-t border-white/10">
                                   <div className="flex items-center gap-1 bg-white/10 rounded-lg px-2 py-1 border border-white/20">
                                     <LinkIcon className="w-3 h-3 text-[#ff96c5] shrink-0" />
@@ -726,12 +924,11 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                                       type="url"
                                       value={imgVal}
                                       onChange={(e) => setImgFn(e.target.value)}
-                                      placeholder="Pega enlace de foto..."
+                                      placeholder="Pega enlace URL..."
                                       className="w-full text-[10px] bg-transparent text-white outline-none font-medium"
                                     />
                                   </div>
 
-                                  {/* Native Inputs with HTML <label htmlFor> for 100% Mobile Browser Compatibility */}
                                   <input
                                     id={galleryInputId}
                                     type="file"
@@ -824,19 +1021,20 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                       </div>
                     </div>
 
-                    <div className="pt-2 flex justify-end gap-3">
+                    {/* Mobile Action Save Bar */}
+                    <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row justify-end gap-3 sticky bottom-0 bg-[#42082B] p-2 rounded-2xl">
                       <button
                         type="button"
                         onClick={() => setIsEditingProduct(false)}
-                        className="px-6 py-3 rounded-full bg-white/10 text-white font-bold text-xs uppercase"
+                        className="w-full sm:w-auto px-6 py-3 rounded-full bg-white/10 text-white font-bold text-xs uppercase cursor-pointer"
                       >
                         Cancelar
                       </button>
                       <button
                         type="submit"
-                        className="px-8 py-3 rounded-full bg-[#25D366] hover:bg-[#128C7E] text-[#1A1A1A] font-black text-xs uppercase shadow-xl cursor-pointer"
+                        className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs uppercase shadow-2xl cursor-pointer active:scale-95 transition-all text-center"
                       >
-                        Guardar Producto en BD
+                        💾 Guardar Producto en BD
                       </button>
                     </div>
                   </form>
@@ -847,50 +1045,216 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
             {/* TAB 3: CUSTOM BOUQUET EDITOR */}
             {activeTab === 'custom_bouquet' && (
               <div className="space-y-6">
-                <div className="flex items-center justify-between border-b border-white/20 pb-4">
-                  <h4 className="font-syne text-xl font-black text-white">
-                    Editor Diseña tu Ramo (Variedades, Colores & Precios)
-                  </h4>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/20 pb-4 gap-3">
+                  <div>
+                    <h4 className="font-syne text-lg sm:text-xl font-black text-white">
+                      Diseña tu Ramo (Variedades, Colores & Precios)
+                    </h4>
+                    <span className="text-[10px] text-[#ff96c5] font-bold">Configura los insumos y precios por tallo</span>
+                  </div>
                   <button
                     onClick={handleOpenAddFlowerOption}
-                    className="bg-[#25D366] text-white font-black text-xs uppercase px-4 py-2 rounded-full"
+                    className="bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs uppercase px-4 py-2.5 rounded-full cursor-pointer active:scale-95 transition-all"
                   >
                     + Agregar Flor
                   </button>
                 </div>
 
-                <form onSubmit={handleSaveFlowerOption} className="bg-[#42082B] p-5 rounded-3xl border border-white/20 space-y-4">
+                <form onSubmit={handleSaveFlowerOption} className="bg-[#42082B] p-4 sm:p-5 rounded-3xl border border-white/20 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <input type="text" required value={flName} onChange={(e) => setFlName(e.target.value)} placeholder="Nombre Flor" className="bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-bold text-white" />
-                    <input type="text" required value={flColorName} onChange={(e) => setFlColorName(e.target.value)} placeholder="Nombre Color" className="bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-bold text-white" />
-                    <input type="number" required value={flPrice} onChange={(e) => setFlPrice(Number(e.target.value))} placeholder="Precio por Tallo" className="bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-bold text-white" />
+                    <input type="text" required value={flName} onChange={(e) => setFlName(e.target.value)} placeholder="Nombre Flor (Ej: Rosa Limpiapipa)" className="bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none" />
+                    <input type="text" required value={flColorName} onChange={(e) => setFlColorName(e.target.value)} placeholder="Nombre Color (Ej: Fucsia)" className="bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none" />
+                    <input type="number" required value={flPrice} onChange={(e) => setFlPrice(Number(e.target.value))} placeholder="Precio por Tallo ($)" className="bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none" />
                   </div>
-                  <button type="submit" className="bg-[#25D366] text-white font-black text-xs uppercase px-6 py-2.5 rounded-xl">
+                  <button type="submit" className="w-full sm:w-auto bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs uppercase px-6 py-3 rounded-xl cursor-pointer active:scale-95 transition-all">
                     Guardar Flor en BD
                   </button>
                 </form>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {customFlowers.map((fl) => (
+                    <div key={fl.id} className="bg-[#42082B] p-3 rounded-2xl border border-white/20 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{fl.iconSvg || '🌸'}</span>
+                        <div>
+                          <h5 className="font-bold text-xs text-white">{fl.name}</h5>
+                          <span className="text-[10px] text-[#ff96c5] block">{fl.colorName} • ${(fl.pricePerStem || 0).toLocaleString('es-CL')} / tallo</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* TAB 4: TAXONOMY EDITOR */}
+            {/* TAB 4: TAXONOMY EDITOR (Categorías Padre ➔ Categorías Hijas) */}
             {activeTab === 'taxonomy' && (
               <div className="space-y-6">
-                <h4 className="font-syne text-xl font-black text-white">Editor de Categorías & Subcategorías</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="bg-[#42082B] p-5 rounded-2xl border border-white/20 space-y-3">
-                    <span className="text-xs font-black uppercase text-[#ff96c5] block">Crear Categoría Principal</span>
-                    <div className="flex gap-2">
-                      <input type="text" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="Nombre Categoría" className="flex-1 bg-white/10 border border-white/30 rounded-xl px-4 py-2 text-xs font-bold text-white" />
-                      <button onClick={handleAddCategory} className="bg-[#f70071] text-white font-black text-xs px-4 py-2 rounded-xl">Crear</button>
-                    </div>
+                <div className="border-b border-white/20 pb-3">
+                  <h4 className="font-syne text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                    <FolderTree className="w-5 h-5 text-[#f70071]" />
+                    <span>Estructura de Categorías Padre e Hijas</span>
+                  </h4>
+                  <p className="text-xs text-[#ff96c5] font-semibold mt-1">
+                    Gestiona las categorías principales (Padres) y sus subcategorías secundarias (Hijas) que aparecen en la tienda y en el creador de productos.
+                  </p>
+                </div>
+
+                {/* Form to Create New Parent Category */}
+                <form onSubmit={handleAddParentCategory} className="bg-[#42082B] p-4 sm:p-5 rounded-3xl border-2 border-[#f70071]/60 space-y-4 shadow-xl">
+                  <div className="flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-full bg-[#f70071] text-white flex items-center justify-center font-black text-xs">
+                      1
+                    </span>
+                    <h5 className="font-syne text-sm font-black text-white">Crear Nueva Categoría Padre (Principal)</h5>
                   </div>
 
-                  <div className="bg-[#42082B] p-5 rounded-2xl border border-white/20 space-y-3">
-                    <span className="text-xs font-black uppercase text-[#ffc0dc] block">Agregar Subcategoría</span>
-                    <div className="flex gap-2">
-                      <input type="text" value={newSubcatName} onChange={(e) => setNewSubcatName(e.target.value)} placeholder="Nombre Subcategoría" className="flex-1 bg-white/10 border border-white/30 rounded-xl px-4 py-2 text-xs font-bold text-white" />
-                      <button onClick={handleAddSubcategory} className="bg-[#25D366] text-white font-black text-xs px-4 py-2 rounded-xl">Agregar</button>
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                    {/* Emoji Selector */}
+                    <div className="sm:col-span-3">
+                      <label className="text-[10px] font-bold text-white/70 block mb-1">Icono / Emoji</label>
+                      <select
+                        value={newCatIcon}
+                        onChange={(e) => setNewCatIcon(e.target.value)}
+                        className="w-full bg-[#2B051C] border border-white/30 rounded-xl px-3 py-2.5 text-xs font-bold text-white outline-none"
+                      >
+                        {EMOJI_OPTIONS.map((emoji) => (
+                          <option key={emoji} value={emoji}>
+                            {emoji} Icono {emoji}
+                          </option>
+                        ))}
+                      </select>
                     </div>
+
+                    {/* Category Name Input */}
+                    <div className="sm:col-span-6">
+                      <label className="text-[10px] font-bold text-white/70 block mb-1">Nombre de Categoría Padre *</label>
+                      <input
+                        type="text"
+                        required
+                        value={newCatName}
+                        onChange={(e) => setNewCatName(e.target.value)}
+                        placeholder="Ej: Rosas & Claveles"
+                        className="w-full bg-white/10 border border-white/30 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none focus:border-[#f70071]"
+                      />
+                    </div>
+
+                    {/* Submit Button */}
+                    <div className="sm:col-span-3 flex items-end">
+                      <button
+                        type="submit"
+                        className="w-full bg-[#f70071] hover:bg-[#ff1b82] text-white font-black text-xs uppercase py-3 rounded-xl shadow-lg cursor-pointer active:scale-95 transition-all"
+                      >
+                        + Crear Padre
+                      </button>
+                    </div>
+                  </div>
+                </form>
+
+                {/* Hierarchical Tree List of Parent & Child Categories */}
+                <div className="space-y-4 pt-2">
+                  <h5 className="font-syne text-sm font-black text-white uppercase tracking-wider">
+                    📂 Categorías Padre Existentes ({categories.length})
+                  </h5>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {categories.map((parentCat) => {
+                      const childSubcats = subcategoriesMap[parentCat.id] || [];
+                      const isExpanded = expandedParentCategories[parentCat.id] ?? true;
+                      const productCount = productsList.filter((p) => p.category === parentCat.id).length;
+
+                      return (
+                        <div key={parentCat.id} className="bg-[#42082B] rounded-3xl border border-white/20 overflow-hidden shadow-lg">
+                          {/* Parent Category Card Header */}
+                          <div className="p-4 bg-white/5 border-b border-white/10 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => toggleExpandParentCategory(parentCat.id)}
+                                className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer"
+                              >
+                                {isExpanded ? <ChevronDown className="w-4 h-4 text-[#ff96c5]" /> : <ChevronRight className="w-4 h-4 text-white/50" />}
+                              </button>
+                              <span className="text-2xl">{parentCat.icon}</span>
+                              <div>
+                                <h6 className="font-syne text-base font-black text-white">{parentCat.label}</h6>
+                                <span className="text-[10px] text-[#ff96c5] font-bold block">
+                                  ID: {parentCat.id} • {productCount} producto{productCount !== 1 ? 's' : ''} asignado{productCount !== 1 ? 's' : ''}
+                                </span>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteParentCategory(parentCat.id)}
+                              className="text-xs font-bold text-red-400 hover:text-red-300 bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-500/30 cursor-pointer"
+                              title="Eliminar esta categoría padre"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 inline mr-1" />
+                              <span className="hidden sm:inline">Eliminar</span>
+                            </button>
+                          </div>
+
+                          {/* Child Subcategories Body */}
+                          {isExpanded && (
+                            <div className="p-4 sm:p-5 space-y-4 bg-[#2B051C]/60">
+                              <div className="space-y-2">
+                                <span className="text-[10px] font-black uppercase text-[#ffc0dc] block flex items-center gap-1">
+                                  <Tag className="w-3 h-3" />
+                                  <span>Subcategorías Hijas ({childSubcats.length})</span>
+                                </span>
+
+                                {childSubcats.length === 0 ? (
+                                  <p className="text-xs text-white/50 italic">No hay subcategorías hijas creadas en esta categoría.</p>
+                                ) : (
+                                  <div className="flex flex-wrap gap-2 pt-1">
+                                    {childSubcats.map((subName) => (
+                                      <div
+                                        key={subName}
+                                        className="bg-white/10 border border-white/20 rounded-full px-3 py-1.5 text-xs font-bold text-white flex items-center gap-2 group"
+                                      >
+                                        <span>• {subName}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteSubcategory(parentCat.id, subName)}
+                                          className="w-4 h-4 rounded-full bg-red-500/30 hover:bg-red-500 text-white flex items-center justify-center text-[10px] font-black cursor-pointer"
+                                          title={`Eliminar subcategoría ${subName}`}
+                                        >
+                                          ✕
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Form to Add Child Subcategory directly to this Parent */}
+                              <div className="pt-3 border-t border-white/10 flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={newSubcatInputMap[parentCat.id] || ''}
+                                  onChange={(e) =>
+                                    setNewSubcatInputMap((prev) => ({
+                                      ...prev,
+                                      [parentCat.id]: e.target.value,
+                                    }))
+                                  }
+                                  placeholder={`+ Nueva Subcategoría Hija para "${parentCat.label}"...`}
+                                  className="flex-1 bg-white/10 border border-white/30 rounded-xl px-3.5 py-2 text-xs font-bold text-white outline-none focus:border-[#25D366]"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddChildSubcategory(parentCat.id)}
+                                  className="bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs px-4 py-2 rounded-xl shadow-md cursor-pointer active:scale-95 transition-all shrink-0"
+                                >
+                                  + Agregar Hija
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
