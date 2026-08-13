@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Lock, Users, ShoppingBag, Truck, Calendar, Phone, CheckCircle2, Search, ArrowRight, ShieldCheck, Sparkles, Plus, Edit3, Trash2, Image, Tag, Code, Layers, Check, Camera, Mic, Upload, Settings, Sliders, RefreshCw, Palette, Link as LinkIcon, ChevronDown, ChevronRight, FolderTree, Filter } from 'lucide-react';
+import { X, Lock, Users, ShoppingBag, Truck, Calendar, Phone, CheckCircle2, Search, ArrowRight, ShieldCheck, Sparkles, Plus, Edit3, Trash2, Image, Tag, Code, Layers, Check, Camera, Mic, Upload, Settings, Sliders, RefreshCw, Palette, Link as LinkIcon, ChevronDown, ChevronRight, FolderTree, Filter, Save } from 'lucide-react';
 import { Product } from '../types';
 import { db, DbOrder, CustomFlowerOption } from '../services/db';
 
@@ -74,6 +74,13 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
   const [newCatIcon, setNewCatIcon] = useState('🌸');
   const [newSubcatInputMap, setNewSubcatInputMap] = useState<Record<string, string>>({});
   const [expandedParentCategories, setExpandedParentCategories] = useState<Record<string, boolean>>({ ramos: true, girasoles: true });
+
+  // Subcategory & Parent Edit Mode States
+  const [editingSubcatKey, setEditingSubcatKey] = useState<{ parentId: string; oldSubName: string } | null>(null);
+  const [editingSubcatText, setEditingSubcatText] = useState('');
+
+  const [editingParentId, setEditingParentId] = useState<string | null>(null);
+  const [editingParentLabel, setEditingParentLabel] = useState('');
 
   // Product Filtering & Search State
   const [searchProductFilter, setSearchProductFilter] = useState('');
@@ -404,6 +411,25 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     alert(`¡Categoría Padre "${newCatName}" guardada en la Nube Supabase!`);
   };
 
+  const handleSaveEditedParentCategory = async (parentId: string, newLabel: string) => {
+    const trimmed = newLabel.trim();
+    if (!trimmed) {
+      alert('El nombre de la categoría padre no puede estar vacío.');
+      return;
+    }
+
+    const updatedCategories = categories.map((c) =>
+      c.id === parentId ? { ...c, label: trimmed } : c
+    );
+
+    setCategories(updatedCategories);
+    setEditingParentId(null);
+    setEditingParentLabel('');
+
+    await db.saveTaxonomies({ categories: updatedCategories, subcategoriesMap });
+    alert(`¡Categoría Padre "${trimmed}" actualizada y guardada en la Nube Supabase!`);
+  };
+
   const handleAddChildSubcategory = async (parentId: string) => {
     const subName = (newSubcatInputMap[parentId] || '').trim();
     if (!subName) return;
@@ -423,6 +449,32 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     setNewSubcatInputMap((prev) => ({ ...prev, [parentId]: '' }));
 
     await db.saveTaxonomies({ categories, subcategoriesMap: updatedSubcats });
+  };
+
+  const handleSaveEditedSubcategory = async (parentId: string, oldSubName: string, newSubName: string) => {
+    const trimmedNew = newSubName.trim();
+    if (!trimmedNew) {
+      alert('El nombre de la subcategoría no puede estar vacío.');
+      return;
+    }
+
+    const currentSubcats = subcategoriesMap[parentId] || [];
+    if (trimmedNew !== oldSubName && currentSubcats.includes(trimmedNew)) {
+      alert('Ya existe una subcategoría con este nombre dentro de esta categoría padre.');
+      return;
+    }
+
+    const updatedSubcats = {
+      ...subcategoriesMap,
+      [parentId]: currentSubcats.map((s) => (s === oldSubName ? trimmedNew : s)),
+    };
+
+    setSubcategoriesMap(updatedSubcats);
+    setEditingSubcatKey(null);
+    setEditingSubcatText('');
+
+    await db.saveTaxonomies({ categories, subcategoriesMap: updatedSubcats });
+    alert(`¡Subcategoría "${trimmedNew}" actualizada y guardada en la Nube Supabase!`);
   };
 
   const handleDeleteSubcategory = async (parentId: string, subName: string) => {
@@ -1243,7 +1295,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                 <div className="border-b border-white/20 pb-3">
                   <h4 className="font-syne text-lg sm:text-xl font-black text-white flex items-center gap-2">
                     <FolderTree className="w-5 h-5 text-[#f70071]" />
-                    <span>Estructura de Categorías Padre e Hijas</span>
+                    <span>Estructura de Categorías Padre e Hijas (Con Guardado Nube)</span>
                   </h4>
                   <p className="text-xs text-[#ff96c5] font-semibold mt-1">
                     Gestiona las categorías principales (Padres) y sus subcategorías secundarias (Hijas) que aparecen en la tienda y en el creador de productos.
@@ -1312,32 +1364,70 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                       const childSubcats = subcategoriesMap[parentCat.id] || [];
                       const isExpanded = expandedParentCategories[parentCat.id] ?? true;
                       const productCount = productsList.filter((p) => p.category === parentCat.id).length;
+                      const isEditingParent = editingParentId === parentCat.id;
 
                       return (
                         <div key={parentCat.id} className="bg-[#42082B] rounded-3xl border border-white/20 overflow-hidden shadow-lg">
                           {/* Parent Category Card Header */}
                           <div className="p-4 bg-white/5 border-b border-white/10 flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 flex-1 overflow-hidden">
                               <button
                                 type="button"
                                 onClick={() => toggleExpandParentCategory(parentCat.id)}
-                                className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer"
+                                className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer shrink-0"
                               >
                                 {isExpanded ? <ChevronDown className="w-4 h-4 text-[#ff96c5]" /> : <ChevronRight className="w-4 h-4 text-white/50" />}
                               </button>
-                              <span className="text-2xl">{parentCat.icon}</span>
-                              <div>
-                                <h6 className="font-syne text-base font-black text-white">{parentCat.label}</h6>
-                                <span className="text-[10px] text-[#ff96c5] font-bold block">
-                                  ID: {parentCat.id} • {productCount} producto{productCount !== 1 ? 's' : ''} asignado{productCount !== 1 ? 's' : ''}
-                                </span>
-                              </div>
+                              <span className="text-2xl shrink-0">{parentCat.icon}</span>
+                              
+                              {isEditingParent ? (
+                                <div className="flex items-center gap-2 flex-1">
+                                  <input
+                                    type="text"
+                                    value={editingParentLabel}
+                                    onChange={(e) => setEditingParentLabel(e.target.value)}
+                                    className="bg-[#2B051C] border border-[#25D366] rounded-xl px-3 py-1.5 text-xs font-black text-white outline-none flex-1"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSaveEditedParentCategory(parentCat.id, editingParentLabel)}
+                                    className="bg-[#25D366] hover:bg-[#128C7E] text-white text-xs font-black px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-md cursor-pointer shrink-0"
+                                  >
+                                    <Save className="w-3.5 h-3.5" />
+                                    <span>Guardar</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setEditingParentId(null); setEditingParentLabel(''); }}
+                                    className="text-xs text-white/70 hover:text-white bg-white/10 px-2 py-1.5 rounded-xl cursor-pointer shrink-0"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="overflow-hidden">
+                                  <div className="flex items-center gap-2">
+                                    <h6 className="font-syne text-base font-black text-white truncate">{parentCat.label}</h6>
+                                    <button
+                                      type="button"
+                                      onClick={() => { setEditingParentId(parentCat.id); setEditingParentLabel(parentCat.label); }}
+                                      className="text-white/40 hover:text-[#ff96c5] cursor-pointer"
+                                      title="Editar nombre de la categoría padre"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                  <span className="text-[10px] text-[#ff96c5] font-bold block">
+                                    ID: {parentCat.id} • {productCount} producto{productCount !== 1 ? 's' : ''} asignado{productCount !== 1 ? 's' : ''}
+                                  </span>
+                                </div>
+                              )}
                             </div>
 
                             <button
                               type="button"
                               onClick={() => handleDeleteParentCategory(parentCat.id)}
-                              className="text-xs font-bold text-red-400 hover:text-red-300 bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-500/30 cursor-pointer"
+                              className="text-xs font-bold text-red-400 hover:text-red-300 bg-red-500/10 px-3 py-1.5 rounded-xl border border-red-500/30 cursor-pointer shrink-0"
                               title="Eliminar esta categoría padre"
                             >
                               <Trash2 className="w-3.5 h-3.5 inline mr-1" />
@@ -1357,23 +1447,77 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                                 {childSubcats.length === 0 ? (
                                   <p className="text-xs text-white/50 italic">No hay subcategorías hijas creadas en esta categoría.</p>
                                 ) : (
-                                  <div className="flex flex-wrap gap-2 pt-1">
-                                    {childSubcats.map((subName) => (
-                                      <div
-                                        key={subName}
-                                        className="bg-white/10 border border-white/20 rounded-full px-3 py-1.5 text-xs font-bold text-white flex items-center gap-2 group"
-                                      >
-                                        <span>• {subName}</span>
-                                        <button
-                                          type="button"
-                                          onClick={() => handleDeleteSubcategory(parentCat.id, subName)}
-                                          className="w-4 h-4 rounded-full bg-red-500/30 hover:bg-red-500 text-white flex items-center justify-center text-[10px] font-black cursor-pointer"
-                                          title={`Eliminar subcategoría ${subName}`}
+                                  <div className="flex flex-wrap gap-2.5 pt-1">
+                                    {childSubcats.map((subName) => {
+                                      const isEditingThisSub =
+                                        editingSubcatKey?.parentId === parentCat.id &&
+                                        editingSubcatKey?.oldSubName === subName;
+
+                                      if (isEditingThisSub) {
+                                        return (
+                                          <div
+                                            key={subName}
+                                            className="flex items-center gap-1.5 bg-[#f70071]/30 border-2 border-[#25D366] rounded-2xl p-1.5 animate-dropdown"
+                                          >
+                                            <input
+                                              type="text"
+                                              value={editingSubcatText}
+                                              onChange={(e) => setEditingSubcatText(e.target.value)}
+                                              className="bg-[#2B051C] border border-white/40 rounded-xl px-3 py-1 text-xs font-black text-white outline-none focus:border-[#25D366]"
+                                            />
+                                            <button
+                                              type="button"
+                                              onClick={() => handleSaveEditedSubcategory(parentCat.id, subName, editingSubcatText)}
+                                              className="bg-[#25D366] hover:bg-[#128C7E] text-white text-[11px] font-black px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-md cursor-pointer active:scale-95 transition-all"
+                                              title="Guardar cambios de la subcategoría"
+                                            >
+                                              <Save className="w-3.5 h-3.5" />
+                                              <span>Guardar</span>
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => { setEditingSubcatKey(null); setEditingSubcatText(''); }}
+                                              className="text-xs text-white/70 hover:text-white bg-white/10 px-2 py-1.5 rounded-xl cursor-pointer"
+                                              title="Cancelar edición"
+                                            >
+                                              ✕
+                                            </button>
+                                          </div>
+                                        );
+                                      }
+
+                                      return (
+                                        <div
+                                          key={subName}
+                                          className="bg-white/10 border border-white/20 rounded-full px-3 py-1.5 text-xs font-bold text-white flex items-center gap-2 group hover:border-[#ff96c5] transition-all"
                                         >
-                                          ✕
-                                        </button>
-                                      </div>
-                                    ))}
+                                          <span>• {subName}</span>
+
+                                          {/* Edit Subcategory Button */}
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setEditingSubcatKey({ parentId: parentCat.id, oldSubName: subName });
+                                              setEditingSubcatText(subName);
+                                            }}
+                                            className="w-5 h-5 rounded-full bg-white/10 hover:bg-[#f70071] text-white flex items-center justify-center text-[10px] cursor-pointer transition-colors"
+                                            title={`Editar subcategoría "${subName}"`}
+                                          >
+                                            <Edit3 className="w-3 h-3" />
+                                          </button>
+
+                                          {/* Delete Subcategory Button */}
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDeleteSubcategory(parentCat.id, subName)}
+                                            className="w-5 h-5 rounded-full bg-red-500/30 hover:bg-red-500 text-white flex items-center justify-center text-[10px] font-black cursor-pointer transition-colors"
+                                            title={`Eliminar subcategoría "${subName}"`}
+                                          >
+                                            ✕
+                                          </button>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 )}
                               </div>
