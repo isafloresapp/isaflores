@@ -16,6 +16,7 @@ interface NavbarProps {
 
 const CATEGORIES_LIST = [
   { id: 'todos', label: 'Todas las Flores', icon: '❄️' },
+  { id: 'flores-temporada', label: 'Flores Temporada', icon: '🌺' },
   { id: 'ramos', label: 'Ramos Eternos', icon: '💐' },
   { id: 'girasoles', label: 'Girasoles', icon: '🌻' },
   { id: 'bodas', label: 'Bodas & Novias', icon: '💍' },
@@ -103,40 +104,37 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
         </div>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Custom Studio CTA Button */}
+        {/* Action Icons */}
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={onOpenCustomBuilder}
-            className="hidden lg:flex items-center gap-1.5 bg-[#C2185B] hover:bg-[#8E24AA] text-white px-5 py-2 rounded-full font-black text-xs uppercase tracking-wider transition-all shadow-md transform hover:scale-105 cursor-pointer"
+            className="hidden sm:flex items-center gap-1.5 bg-[#E0F7FA] hover:bg-[#B2EBF2] text-[#00838F] px-3.5 py-2 rounded-full font-black text-xs transition-all cursor-pointer shadow-xs border border-cyan-200"
           >
-            <Sparkles className="w-4 h-4 text-white" />
+            <Sparkles className="w-4 h-4 text-[#00838F]" />
             <span>Diseña tu Ramo</span>
           </button>
 
-          {/* Wishlist */}
           <button
             onClick={onOpenWishlist}
-            className="relative w-9 h-9 rounded-full bg-[#F4F8FA] border border-cyan-200 flex items-center justify-center text-[#C2185B] hover:bg-[#C2185B] hover:text-white transition-all cursor-pointer shadow-2xs"
-            title="Favoritos"
+            className="relative p-2 text-[#1A237E] hover:text-[#C2185B] transition-colors rounded-full hover:bg-cyan-50 cursor-pointer"
+            aria-label="Wishlist"
           >
-            <Heart className="w-4.5 h-4.5 fill-current" />
+            <Heart className="w-6 h-6" />
             {wishlistCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-[#C2185B] text-white font-black text-[10px] w-4 h-4 rounded-full flex items-center justify-center border border-white">
+              <span className="absolute top-0 right-0 bg-[#C2185B] text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center">
                 {wishlistCount}
               </span>
             )}
           </button>
 
-          {/* Cart Button */}
           <button
             onClick={onOpenCart}
-            className="relative bg-[#0288D1] hover:bg-[#00838F] text-white font-black text-xs px-4 py-2 rounded-full flex items-center gap-2 shadow-md cursor-pointer transition-all transform hover:scale-105"
+            className="relative bg-gradient-to-r from-[#00838F] to-[#0288D1] hover:from-[#00695C] hover:to-[#01579B] text-white px-4 py-2 rounded-full font-black text-xs flex items-center gap-2 transition-all cursor-pointer shadow-md transform active:scale-95"
           >
             <ShoppingBag className="w-4 h-4" />
-            <span className="hidden sm:inline">Mi Pedido</span>
+            <span className="hidden sm:inline">Carrito</span>
             {cartCount > 0 && (
-              <span className="bg-white text-[#0288D1] font-extrabold text-xs px-2 py-0.5 rounded-full">
+              <span className="bg-white text-[#00838F] font-extrabold text-xs px-2 py-0.5 rounded-full">
                 {cartCount}
               </span>
             )}
@@ -144,23 +142,19 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* Category Pills Integrated Row */}
-      <div className="border-t border-cyan-100 bg-[#F4F8FA]/90 backdrop-blur-md py-2 px-4">
-        <div className="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+      {/* Winter Category Filter Chips Row */}
+      <div className="bg-[#E0F7FA]/40 border-t border-cyan-100 py-2 px-4 overflow-x-auto no-scrollbar">
+        <div className="max-w-7xl mx-auto flex items-center gap-2">
           {CATEGORIES_LIST.map((cat) => {
-            const isActive = selectedCategory === cat.id;
+            const isSelected = selectedCategory === cat.id;
             return (
               <button
                 key={cat.id}
-                onClick={() => {
-                  setSelectedCategory(cat.id);
-                  const el = document.getElementById('productos');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }}
-                className={`shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-[#00838F] text-white shadow-xs'
-                    : 'bg-white text-[#1A237E] hover:bg-cyan-50 border border-cyan-200'
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
+                  isSelected
+                    ? 'bg-[#00838F] text-white border-[#00838F] shadow-sm'
+                    : 'bg-white text-[#1A237E] border-cyan-200 hover:border-[#0288D1] hover:bg-cyan-50'
                 }`}
               >
                 <span>{cat.icon}</span>

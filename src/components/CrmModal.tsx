@@ -10,6 +10,7 @@ interface CrmModalProps {
 }
 
 const INITIAL_CATEGORIES = [
+  { id: 'flores-temporada', label: 'Flores Temporada', icon: '🌺' },
   { id: 'ramos', label: 'Ramos Eternos', icon: '💐' },
   { id: 'girasoles', label: 'Girasoles', icon: '🌻' },
   { id: 'bodas', label: 'Bodas & Novias', icon: '💍' },
@@ -19,6 +20,7 @@ const INITIAL_CATEGORIES = [
 ];
 
 const INITIAL_SUBCATEGORIES: Record<string, string[]> = {
+  'flores-temporada': ['Rosas', 'Liliums', 'Girasoles', 'Gerberas', 'Tulipanes', 'Maules', 'Flor de Lavanda', 'Espiga de Trigo'],
   ramos: ['Ramos de Autor', 'Ramos de Rosas', 'Ramos Mixtos'],
   girasoles: ['Girasoles Individuales', 'Ramos de Girasol', 'Cajas de Girasoles'],
   bodas: ['Ramos de Novia', 'Boutonnieres', 'Centros de Mesa'],
@@ -73,7 +75,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
   const [newCatName, setNewCatName] = useState('');
   const [newCatIcon, setNewCatIcon] = useState('🌸');
   const [newSubcatInputMap, setNewSubcatInputMap] = useState<Record<string, string>>({});
-  const [expandedParentCategories, setExpandedParentCategories] = useState<Record<string, boolean>>({ ramos: true, girasoles: true });
+  const [expandedParentCategories, setExpandedParentCategories] = useState<Record<string, boolean>>({ 'flores-temporada': true, ramos: true, girasoles: true });
 
   // Subcategory & Parent Edit Mode States
   const [editingSubcatKey, setEditingSubcatKey] = useState<{ parentId: string; oldSubName: string } | null>(null);
@@ -90,8 +92,8 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [price, setPrice] = useState<number>(14990);
-  const [category, setCategory] = useState('ramos');
-  const [subcategory, setSubcategory] = useState('Ramos de Autor');
+  const [category, setCategory] = useState('flores-temporada');
+  const [subcategory, setSubcategory] = useState('Rosas');
   const [description, setDescription] = useState('');
   const [badge, setBadge] = useState('Nuevo');
   
@@ -119,10 +121,26 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     setOrders(loadedOrders || []);
     setProductsList(loadedProducts || []);
     setCustomFlowers(loadedCustomFlowers || []);
-    if (loadedTaxonomies) {
-      setCategories(loadedTaxonomies.categories || INITIAL_CATEGORIES);
-      setSubcategoriesMap(loadedTaxonomies.subcategoriesMap || INITIAL_SUBCATEGORIES);
+
+    let finalCategories = INITIAL_CATEGORIES;
+    let finalSubcats = INITIAL_SUBCATEGORIES;
+
+    if (loadedTaxonomies && loadedTaxonomies.categories && loadedTaxonomies.categories.length > 0) {
+      finalCategories = loadedTaxonomies.categories;
+      finalSubcats = loadedTaxonomies.subcategoriesMap || INITIAL_SUBCATEGORIES;
+
+      // Ensure 'flores-temporada' is included in cloud taxonomy
+      if (!finalCategories.some((c) => c.id === 'flores-temporada')) {
+        finalCategories = [{ id: 'flores-temporada', label: 'Flores Temporada', icon: '🌺' }, ...finalCategories];
+        finalSubcats['flores-temporada'] = ['Rosas', 'Liliums', 'Girasoles', 'Gerberas', 'Tulipanes', 'Maules', 'Flor de Lavanda', 'Espiga de Trigo'];
+        await db.saveTaxonomies({ categories: finalCategories, subcategoriesMap: finalSubcats });
+      }
+    } else {
+      await db.saveTaxonomies({ categories: INITIAL_CATEGORIES, subcategoriesMap: INITIAL_SUBCATEGORIES });
     }
+
+    setCategories(finalCategories);
+    setSubcategoriesMap(finalSubcats);
   };
 
   const handleManualRefresh = async () => {
@@ -228,9 +246,9 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     setEditingId(null);
     setName('');
     setPrice(14990);
-    const defaultCat = categories[0]?.id || 'ramos';
+    const defaultCat = categories[0]?.id || 'flores-temporada';
     setCategory(defaultCat);
-    setSubcategory(subcategoriesMap[defaultCat]?.[0] || 'General');
+    setSubcategory(subcategoriesMap[defaultCat]?.[0] || 'Rosas');
     setDescription('');
     setBadge('Nuevo');
     setImg1('');
@@ -245,7 +263,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     setEditingId(prod.id);
     setName(prod.name || '');
     setPrice(prod.price || 0);
-    const parentCat = prod.category || categories[0]?.id || 'ramos';
+    const parentCat = prod.category || categories[0]?.id || 'flores-temporada';
     setCategory(parentCat);
     setSubcategory((prod as any).subcategory || subcategoriesMap[parentCat]?.[0] || 'General');
     setDescription(prod.description || '');
@@ -271,8 +289,8 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
       id: editingId || `prod-${Date.now()}`,
       name: name || 'Ramo Sin Nombre',
       price: price || 0,
-      category: category || 'ramos',
-      categoryLabel: parentCategoryObj?.label || 'Flores',
+      category: category || 'flores-temporada',
+      categoryLabel: parentCategoryObj?.label || 'Flores Temporada',
       subcategory: subcategory || 'General',
       description: description || '',
       fullDetails: `${description || ''}\n\n• SKU: ${sku}\n• Categoría Padre: ${parentCategoryObj?.label || category}\n• Subcategoría Hija: ${subcategory}\n• Colores disponibles: ${selectedColors.join(', ')}`,
