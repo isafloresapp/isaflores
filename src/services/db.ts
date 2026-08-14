@@ -61,7 +61,7 @@ class DatabaseService {
     try {
       if (supabase) {
         const { data, error } = await supabase.from('products').select('*');
-        if (!error && data && data.length > 0) {
+        if (!error && data) {
           // Filter out system rows
           const realData = data.filter((p) => !String(p.id).startsWith('SYS_'));
 
@@ -71,7 +71,7 @@ class DatabaseService {
             price: Number(p.price) || 14990,
             category: p.category || 'ramos',
             categoryLabel: p.category === 'ramos' ? 'Ramos Eternos' : p.category === 'girasoles' ? 'Girasoles' : 'Flores',
-            subcategory: 'General',
+            subcategory: (p as any).subcategory || 'General',
             description: p.description || '',
             fullDetails: p.description || '',
             badge: p.badge || 'Destacado',
@@ -83,15 +83,12 @@ class DatabaseService {
             tags: [p.category || 'flores', 'flores eternas']
           }));
 
-          // Cloud products ALWAYS take priority so device B receives changes made on device A!
-          const localMap = new Map(localProducts.map((p) => [p.id, p]));
-          const cloudMap = new Map(cloudProducts.map((p) => [p.id, p]));
+          // Cloud products ALWAYS take priority! If cloud has custom items, use them.
+          // If cloud has 0 non-system items, reset to initial catalog!
+          const finalList = cloudProducts.length > 0 ? cloudProducts : INITIAL_PRODUCTS;
 
-          const mergedMap = new Map([...localMap, ...cloudMap]);
-          const mergedList = Array.from(mergedMap.values());
-
-          this.saveProductsLocal(mergedList);
-          return mergedList;
+          this.saveProductsLocal(finalList);
+          return finalList;
         }
       }
     } catch (e) {
@@ -198,106 +195,109 @@ class DatabaseService {
     return updated;
   }
 
-  // ORDERS OPERATIONS
+  async clearAllTestProducts(): Promise<Product[]> {
+    try {
+      if (supabase) {
+        const { data } = await supabase.from('products').select('id');
+        if (data) {
+          const testIds = data.map((p) => String(p.id)).filter((id) => !id.startsWith('SYS_'));
+          for (const id of testIds) {
+            await supabase.from('products').delete().eq('id', id);
+          }
+        }
+      }
+    } catch (e) {}
+
+    this.saveProductsLocal(INITIAL_PRODUCTS);
+    return INITIAL_PRODUCTS;
+  }
+
+  // 2. ORDERS MANAGEMENT PERSISTENCE
   async getOrders(): Promise<DbOrder[]> {
     try {
       if (supabase) {
-        const { data, error } = await supabase.from('orders').select('*').order('createdAt', { ascending: false });
+        const { data, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
         if (!error && data && data.length > 0) {
-          const formattedOrders: DbOrder[] = data.map((o) => ({
-            id: String(o.id),
-            customerName: o.customerName || 'Cliente',
+          const cloudOrders: DbOrder[] = data.map((o) => ({
+            id: String(o.id || `ORD-${Math.floor(1000 + Math.random() * 9000)}`),
+            customerName: o.customer_name || 'Cliente',
             phone: o.phone || '',
-            addressComuna: o.addressComuna || 'La Florida',
-            productName: o.productName || 'Flores IsaFlores',
+            addressComuna: o.address_comuna || '',
+            productName: o.product_name || 'Ramo de Flores',
             total: Number(o.total) || 0,
-            isExpress: Boolean(o.isExpress),
-            deliveryDate: o.deliveryDate || new Date().toISOString(),
+            isExpress: Boolean(o.is_express),
+            deliveryDate: o.delivery_date || '',
             status: o.status || 'pendiente',
             notes: o.notes || '',
-            createdAt: o.createdAt || new Date().toISOString()
+            createdAt: o.created_at || new Date().toISOString()
           }));
-          this.saveOrdersLocal(formattedOrders);
-          return formattedOrders;
+
+          localStorage.setItem(DB_ORDERS_KEY, JSON.stringify(cloudOrders));
+          return cloudOrders;
         }
       }
-    } catch (e) {
-      console.warn('Supabase cloud fetch orders note:', e);
-    }
+    } catch (e) {}
 
     try {
       const stored = localStorage.getItem(DB_ORDERS_KEY);
-      if (stored) return JSON.parse(stored);
-    } catch (e) {}
-
-    return [];
-  }
-
-  private saveOrdersLocal(orders: DbOrder[]): void {
-    try {
-      localStorage.setItem(DB_ORDERS_KEY, JSON.stringify(orders));
-    } catch (e) {}
-  }
-
-  async saveOrderCloud(order: DbOrder): Promise<void> {
-    try {
-      if (supabase) {
-        await supabase.from('orders').upsert(order);
-      }
+      return stored ? JSON.parse(stored) : [];
     } catch (e) {
-      console.warn('Error saving order to Supabase cloud:', e);
+      return [];
     }
   }
 
   async addOrder(orderData: Omit<DbOrder, 'id' | 'createdAt'>): Promise<DbOrder[]> {
+    const newId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
     const newOrder: DbOrder = {
       ...orderData,
-      id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
-      createdAt: new Date().toISOString(),
+      id: newId,
+      createdAt: new Date().toISOString()
     };
 
-    let current: DbOrder[] = [];
     try {
-      const stored = localStorage.getItem(DB_ORDERS_KEY);
-      current = stored ? JSON.parse(stored) : [];
-    } catch (e) {
-      current = [];
-    }
+      if (supabase) {
+        await supabase.from('orders').insert({
+          id: newOrder.id,
+          customer_name: newOrder.customerName,
+          phone: newOrder.phone,
+          address_comuna: newOrder.addressComuna,
+          product_name: newOrder.productName,
+          total: newOrder.total,
+          is_express: newOrder.isExpress,
+          delivery_date: newOrder.deliveryDate,
+          status: newOrder.status,
+          notes: newOrder.notes
+        });
+      }
+    } catch (e) {}
 
-    const updated = [newOrder, ...current.filter((o) => o.id !== newOrder.id)];
-    this.saveOrdersLocal(updated);
-    await this.saveOrderCloud(newOrder);
+    const current = await this.getOrders();
+    const updated = [newOrder, ...current];
+    localStorage.setItem(DB_ORDERS_KEY, JSON.stringify(updated));
     return updated;
   }
 
   async updateOrderStatus(orderId: string, status: DbOrder['status']): Promise<DbOrder[]> {
-    let current: DbOrder[] = [];
     try {
-      const stored = localStorage.getItem(DB_ORDERS_KEY);
-      current = stored ? JSON.parse(stored) : [];
-    } catch (e) {
-      current = [];
-    }
+      if (supabase) {
+        await supabase.from('orders').update({ status }).eq('id', orderId);
+      }
+    } catch (e) {}
 
-    const target = current.find((o) => o.id === orderId);
-    if (target) {
-      const updatedOrder = { ...target, status };
-      await this.saveOrderCloud(updatedOrder);
-    }
-
-    const updatedList = current.map((o) => (o.id === orderId ? { ...o, status } : o));
-    this.saveOrdersLocal(updatedList);
-    return updatedList;
+    const current = await this.getOrders();
+    const updated = current.map((o) => (o.id === orderId ? { ...o, status } : o));
+    localStorage.setItem(DB_ORDERS_KEY, JSON.stringify(updated));
+    return updated;
   }
 
-  // CUSTOM BOUQUET FLOWER OPTIONS (CROSS-DEVICE CLOUD SYNC)
+  // 3. SYSTEM CONFIGS CLOUD PERSISTENCE (Custom Flowers & Taxonomies)
   async getCustomFlowers(): Promise<CustomFlowerOption[]> {
     try {
       if (supabase) {
-        const { data, error } = await supabase.from('products').select('*').eq('id', 'SYS_CUSTOM_FLOWERS').maybeSingle();
-        if (!error && data && data.description) {
-          const parsed: CustomFlowerOption[] = JSON.parse(data.description);
-          if (parsed && parsed.length > 0) {
+        const { data } = await supabase.from('products').select('*').eq('id', 'SYS_CUSTOM_FLOWERS').single();
+        if (data && data.description) {
+          const parsed = JSON.parse(data.description);
+          if (Array.isArray(parsed) && parsed.length > 0) {
             localStorage.setItem(DB_CUSTOM_FLOWERS_KEY, JSON.stringify(parsed));
             return parsed;
           }
@@ -307,42 +307,36 @@ class DatabaseService {
 
     try {
       const stored = localStorage.getItem(DB_CUSTOM_FLOWERS_KEY);
-      if (stored) return JSON.parse(stored);
-    } catch (e) {}
-
-    this.saveCustomFlowers(INITIAL_CUSTOM_FLOWERS);
-    return INITIAL_CUSTOM_FLOWERS;
-  }
-
-  async saveCustomFlowers(flowers: CustomFlowerOption[]): Promise<boolean> {
-    try {
-      localStorage.setItem(DB_CUSTOM_FLOWERS_KEY, JSON.stringify(flowers));
-      if (supabase) {
-        await supabase.from('products').upsert({
-          id: 'SYS_CUSTOM_FLOWERS',
-          name: 'Sistema Flores Personalizadas',
-          price: 0,
-          category: 'system',
-          description: JSON.stringify(flowers),
-          badge: 'system',
-          image: 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800',
-          rating: 5
-        });
-      }
-      return true;
+      return stored ? JSON.parse(stored) : INITIAL_CUSTOM_FLOWERS;
     } catch (e) {
-      return false;
+      return INITIAL_CUSTOM_FLOWERS;
     }
   }
 
-  // TAXONOMIES (CATEGORIES & SUBCATEGORIES CROSS-DEVICE CLOUD SYNC)
+  async saveCustomFlowers(flowers: CustomFlowerOption[]): Promise<void> {
+    localStorage.setItem(DB_CUSTOM_FLOWERS_KEY, JSON.stringify(flowers));
+    try {
+      if (supabase) {
+        await supabase.from('products').upsert({
+          id: 'SYS_CUSTOM_FLOWERS',
+          name: 'System Config - Custom Flowers',
+          price: 0,
+          category: 'system',
+          description: JSON.stringify(flowers),
+          image: 'system',
+          rating: 5
+        });
+      }
+    } catch (e) {}
+  }
+
   async getTaxonomies(): Promise<TaxonomyConfig | null> {
     try {
       if (supabase) {
-        const { data, error } = await supabase.from('products').select('*').eq('id', 'SYS_TAXONOMY').maybeSingle();
-        if (!error && data && data.description) {
-          const parsed: TaxonomyConfig = JSON.parse(data.description);
-          if (parsed && parsed.categories && parsed.categories.length > 0) {
+        const { data } = await supabase.from('products').select('*').eq('id', 'SYS_TAXONOMY').single();
+        if (data && data.description) {
+          const parsed = JSON.parse(data.description);
+          if (parsed && parsed.categories) {
             localStorage.setItem(DB_TAXONOMY_KEY, JSON.stringify(parsed));
             return parsed;
           }
@@ -352,31 +346,27 @@ class DatabaseService {
 
     try {
       const stored = localStorage.getItem(DB_TAXONOMY_KEY);
-      if (stored) return JSON.parse(stored);
-    } catch (e) {}
-
-    return null;
+      return stored ? JSON.parse(stored) : null;
+    } catch (e) {
+      return null;
+    }
   }
 
-  async saveTaxonomies(taxonomies: TaxonomyConfig): Promise<boolean> {
+  async saveTaxonomies(config: TaxonomyConfig): Promise<void> {
+    localStorage.setItem(DB_TAXONOMY_KEY, JSON.stringify(config));
     try {
-      localStorage.setItem(DB_TAXONOMY_KEY, JSON.stringify(taxonomies));
       if (supabase) {
         await supabase.from('products').upsert({
           id: 'SYS_TAXONOMY',
-          name: 'Sistema Taxonomia Categorias',
+          name: 'System Config - Taxonomy Hierarchy',
           price: 0,
           category: 'system',
-          description: JSON.stringify(taxonomies),
-          badge: 'system',
-          image: 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800',
+          description: JSON.stringify(config),
+          image: 'system',
           rating: 5
         });
       }
-      return true;
-    } catch (e) {
-      return false;
-    }
+    } catch (e) {}
   }
 }
 
