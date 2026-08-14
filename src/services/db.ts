@@ -30,10 +30,20 @@ export interface TaxonomyConfig {
   subcategoriesMap: Record<string, string[]>;
 }
 
+export interface SliderItem {
+  id: number;
+  badge: string;
+  title: string;
+  desc: string;
+  image: string;
+  highlights: string[];
+}
+
 const DB_PRODUCTS_KEY = 'isaflores_db_products_v6';
 const DB_ORDERS_KEY = 'isaflores_db_orders_v6';
 const DB_CUSTOM_FLOWERS_KEY = 'isaflores_db_custom_flowers_v6';
 const DB_TAXONOMY_KEY = 'isaflores_db_taxonomy_v6';
+const DB_SLIDERS_KEY = 'isaflores_db_sliders_v6';
 
 const INITIAL_CUSTOM_FLOWERS: CustomFlowerOption[] = [
   { id: 'girasol', name: 'Girasol Silvestre', colorName: 'Amarillo Girasol', colorHex: '#EAB308', pricePerStem: 1800, iconSvg: '🌻' },
@@ -41,6 +51,45 @@ const INITIAL_CUSTOM_FLOWERS: CustomFlowerOption[] = [
   { id: 'rosa', name: 'Rosa de Autor', colorName: 'Fucsia Magenta', colorHex: '#f70071', pricePerStem: 2200, iconSvg: '🌹' },
   { id: 'lavanda', name: 'Flor de Lavanda', colorName: 'Púrpura Silvestre', colorHex: '#A855F7', pricePerStem: 1200, iconSvg: '🪻' },
   { id: 'margarita', name: 'Margarita Silvestre', colorName: 'Blanco Puro', colorHex: '#FFFFFF', pricePerStem: 1300, iconSvg: '🌼' },
+];
+
+export const INITIAL_SLIDERS: SliderItem[] = [
+  {
+    id: 1,
+    badge: 'MANIFIESTO ARTESANAL',
+    title: 'Esculturas Vivas Creadas para Perdurar',
+    desc: 'En el Atelier IsaFlores, cada tallo floral no es solo un adorno; es una escultura individual concebida con alambre de calibre flexible y fibras de chenille afelpadas de alta densidad.',
+    image: 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800',
+    highlights: [
+      'Modelado 100% artesanal en Santiago',
+      'Textura afelpada que conservas al tacto',
+      'Colores vivos inalterables con los años'
+    ]
+  },
+  {
+    id: 2,
+    badge: 'TECNOLOGÍA BOTÁNICA',
+    title: 'Preservación Inalterable Sin Agua',
+    desc: 'Nuestros ramos de flores se mantienen radiantes y firmes a lo largo de las estaciones. Di adiós a cambiar agua o preocuparte por marchitez.',
+    image: 'https://images.unsplash.com/photo-1597848212624-a19eb35e2651?auto=format&fit=crop&q=80&w=800',
+    highlights: [
+      'Cero consumo de agua ni poda',
+      'Resistente a polvo y humedad ambiental',
+      'Ideal para alérgicos al polen natural'
+    ]
+  },
+  {
+    id: 3,
+    badge: 'ATENCIÓN PERSONALIZADA',
+    title: 'Atención Directa por WhatsApp',
+    desc: 'Coordinamos cada detalle de tu sorpresa: agregamos dedicatoria escrita a mano en papel artesanal, envolvemos en cintas de satén y despachamos en la fecha que necesites.',
+    image: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&q=80&w=800',
+    highlights: [
+      'Tarjeta de cortesía con caligrafía manual',
+      'Empaque de regalo listo para entregar',
+      'Seguimiento directo en tiempo real'
+    ]
+  }
 ];
 
 class DatabaseService {
@@ -290,7 +339,7 @@ class DatabaseService {
     return updated;
   }
 
-  // 3. SYSTEM CONFIGS CLOUD PERSISTENCE (Custom Flowers & Taxonomies)
+  // 3. SYSTEM CONFIGS CLOUD PERSISTENCE (Custom Flowers, Taxonomies & Sliders)
   async getCustomFlowers(): Promise<CustomFlowerOption[]> {
     try {
       if (supabase) {
@@ -362,6 +411,49 @@ class DatabaseService {
           price: 0,
           category: 'system',
           description: JSON.stringify(config),
+          image: 'system',
+          rating: 5
+        });
+      }
+    } catch (e) {}
+  }
+
+  // 4. SLIDERS CAROUSEL SYSTEM CONFIG (3 Editable Banners)
+  async getSliders(): Promise<SliderItem[]> {
+    try {
+      if (supabase) {
+        const { data } = await supabase.from('products').select('*').eq('id', 'SYS_SLIDERS').single();
+        if (data && data.description) {
+          const parsed = JSON.parse(data.description);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            localStorage.setItem(DB_SLIDERS_KEY, JSON.stringify(parsed));
+            return parsed;
+          }
+        }
+      }
+    } catch (e) {}
+
+    try {
+      const stored = localStorage.getItem(DB_SLIDERS_KEY);
+      return stored ? JSON.parse(stored) : INITIAL_SLIDERS;
+    } catch (e) {
+      return INITIAL_SLIDERS;
+    }
+  }
+
+  async saveSliders(sliders: SliderItem[]): Promise<void> {
+    localStorage.setItem(DB_SLIDERS_KEY, JSON.stringify(sliders));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('isaflores_sliders_changed', { detail: sliders }));
+    }
+    try {
+      if (supabase) {
+        await supabase.from('products').upsert({
+          id: 'SYS_SLIDERS',
+          name: 'System Config - Carousel Sliders',
+          price: 0,
+          category: 'system',
+          description: JSON.stringify(sliders),
           image: 'system',
           rating: 5
         });

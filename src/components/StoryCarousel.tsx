@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
-import heroBouquetImg from '../assets/images/hero_pipe_cleaner_bouquet_1786069749958.jpg';
-import girasolesImg from '../assets/images/girasoles_limpiapipas_1786069760102.jpg';
-import kitDiyImg from '../assets/images/kit_diy_limpiapipas_1786069771911.jpg';
+import { db, SliderItem, INITIAL_SLIDERS } from '../services/db';
 
 interface StoryCarouselProps {
   onOpenCustomBuilder: () => void;
@@ -14,65 +12,58 @@ export const StoryCarousel: React.FC<StoryCarouselProps> = ({
   onExploreCatalog,
 }) => {
   const [activeTab, setActiveTab] = useState(0);
-
-  const STORIES = [
-    {
-      id: 1,
-      badge: 'MANIFIESTO ARTESANAL',
-      title: 'Esculturas Vivas Creadas para Perdurar',
-      desc: 'En el IsaFlores IsaFlores, cada tallo floral no es solo una adorno; es una escultura individual concebida con alambre de calibre flexible y fibras de chenille afelpadas de alta densidad.',
-      image: heroBouquetImg,
-      highlights: [
-        'Modelado 100% artesanal en Santiago',
-        'Textura afelpada que conservas al tacto',
-        'Colores vivos inalterables con los años',
-      ],
-      actionText: 'Explorar Todos los Ramos',
-      actionFn: onExploreCatalog,
-    },
-    {
-      id: 2,
-      badge: 'TECNOLOGÍA BOTÁNICA',
-      title: 'Preservación Inalterable Sin Agua',
-      desc: 'Nuestras ramos de flores se mantienen radiantes y firmes a lo largo de las estaciones. Di adiós a cambiar agua o preocuparte por marchitez.',
-      image: girasolesImg,
-      highlights: [
-        'Cero consumo de agua ni poda',
-        'Resistente a polvo y humedad ambiental',
-        'Ideal para alérgicos al polen natural',
-      ],
-      actionText: 'Diseñar Ramo a Medida',
-      actionFn: onOpenCustomBuilder,
-    },
-    {
-      id: 3,
-      badge: 'ATENCIÓN PERSONALIZADA',
-      title: 'atención por WhatsApp Directo por WhatsApp',
-      desc: 'Coordinamos cada detalle de tu sorpresa: agregamos dedicatoria escrita a mano en papel artesanal, envolvemos en cintas de satén y despachamos en la fecha que necesites.',
-      image: kitDiyImg,
-      highlights: [
-        'Tarjeta de cortesía con caligrafía manual',
-        'Empaque de regalo listo para entregar',
-        'Seguimiento directo en tiempo real',
-      ],
-      actionText: 'Hablar con un Asesor',
-      actionFn: () => {
-        window.open(
-          'https://wa.me/56928704768?text=Hola%20IsaFlores%2C%20deseo%20recibir%20asesoria%20para%20un%20pedido%20de%20autor',
-          '_blank'
-        );
-      },
-    },
-  ];
+  const [sliders, setSliders] = useState<SliderItem[]>(INITIAL_SLIDERS);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveTab((prev) => (prev === STORIES.length - 1 ? 0 : prev + 1));
-    }, 7000);
-    return () => clearInterval(timer);
+    const loadSliders = async () => {
+      const data = await db.getSliders();
+      if (data && data.length > 0) {
+        setSliders(data);
+      }
+    };
+
+    loadSliders();
+
+    const handleSlidersChanged = (e: any) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setSliders(e.detail);
+      }
+    };
+
+    window.addEventListener('isaflores_sliders_changed', handleSlidersChanged);
+    return () => {
+      window.removeEventListener('isaflores_sliders_changed', handleSlidersChanged);
+    };
   }, []);
 
-  const story = STORIES[activeTab];
+  useEffect(() => {
+    if (sliders.length === 0) return;
+    const timer = setInterval(() => {
+      setActiveTab((prev) => (prev >= sliders.length - 1 ? 0 : prev + 1));
+    }, 7000);
+    return () => clearInterval(timer);
+  }, [sliders]);
+
+  if (!sliders || sliders.length === 0) return null;
+
+  const currentSlider = sliders[activeTab] || sliders[0];
+
+  const getActionFn = (idx: number) => {
+    if (idx === 0) return onExploreCatalog;
+    if (idx === 1) return onOpenCustomBuilder;
+    return () => {
+      window.open(
+        'https://wa.me/56928704768?text=Hola%20IsaFlores%2C%20deseo%20recibir%20asesoria%20para%20un%20pedido%20de%20autor',
+        '_blank'
+      );
+    };
+  };
+
+  const getActionText = (idx: number) => {
+    if (idx === 0) return 'Explorar Todos los Ramos';
+    if (idx === 1) return 'Diseñar Ramo a Medida';
+    return 'Hablar con un Asesor WhatsApp';
+  };
 
   return (
     <section className="py-12 sm:py-20 bg-[#2B051C] text-white" id="historia">
@@ -90,9 +81,9 @@ export const StoryCarousel: React.FC<StoryCarouselProps> = ({
 
           {/* Tab Controls */}
           <div className="flex items-center gap-2 bg-white/10 border border-white/20 p-1.5 rounded-full self-start md:self-auto">
-            {STORIES.map((s, idx) => (
+            {sliders.map((s, idx) => (
               <button
-                key={s.id}
+                key={s.id || idx}
                 onClick={() => setActiveTab(idx)}
                 className={`px-4 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs font-black transition-all cursor-pointer ${
                   idx === activeTab
@@ -111,41 +102,43 @@ export const StoryCarousel: React.FC<StoryCarouselProps> = ({
           {/* Image Left */}
           <div className="lg:col-span-5 relative aspect-4/3 rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-white/20 shadow-2xl group">
             <img
-              src={story.image}
-              alt={story.title}
+              src={currentSlider.image}
+              alt={currentSlider.title}
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             />
             <span className="absolute top-3 left-3 bg-[#2B051C]/90 backdrop-blur-md text-[#ffc0dc] font-black text-[9px] sm:text-[10px] uppercase tracking-widest px-3 py-1 rounded-full shadow-lg border border-white/20">
-              {story.badge}
+              {currentSlider.badge}
             </span>
           </div>
 
           {/* Details Right */}
           <div className="lg:col-span-7 space-y-4 sm:space-y-6">
             <h3 className="font-syne text-2xl sm:text-4xl font-extrabold text-white leading-tight">
-              {story.title}
+              {currentSlider.title}
             </h3>
 
             <p className="text-xs sm:text-base text-white/90 leading-relaxed font-semibold">
-              {story.desc}
+              {currentSlider.desc}
             </p>
 
-            <div className="space-y-2 pt-1">
-              {story.highlights.map((h, i) => (
-                <div key={i} className="flex items-center gap-2.5 text-xs font-extrabold text-white">
-                  <CheckCircle2 className="w-4 h-4 text-[#ff5aa4] shrink-0" />
-                  <span>{h}</span>
-                </div>
-              ))}
-            </div>
+            {currentSlider.highlights && currentSlider.highlights.length > 0 && (
+              <div className="space-y-2 pt-1">
+                {currentSlider.highlights.map((h, i) => (
+                  <div key={i} className="flex items-center gap-2.5 text-xs font-extrabold text-white">
+                    <CheckCircle2 className="w-4 h-4 text-[#ff5aa4] shrink-0" />
+                    <span>{h}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="pt-2 sm:pt-4">
               <button
-                onClick={story.actionFn}
+                onClick={getActionFn(activeTab)}
                 className="w-full sm:w-auto bg-white hover:bg-[#ffc0dc] text-[#2B051C] font-black text-xs uppercase tracking-widest px-8 py-3.5 rounded-full flex items-center justify-center gap-3 shadow-2xl transition-all cursor-pointer"
               >
-                <span>{story.actionText}</span>
+                <span>{getActionText(activeTab)}</span>
                 <ArrowRight className="w-4 h-4 text-[#f70071]" />
               </button>
             </div>

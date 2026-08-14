@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Lock, Users, ShoppingBag, Truck, Calendar, Phone, CheckCircle2, Search, ArrowRight, ShieldCheck, Sparkles, Plus, Edit3, Trash2, Image, Tag, Code, Layers, Check, Camera, Mic, Upload, Settings, Sliders, RefreshCw, Palette, Link as LinkIcon, ChevronDown, ChevronRight, FolderTree, Filter, Save, Calculator, TrendingUp, DollarSign, Cpu, Percent, Clock, AlertTriangle } from 'lucide-react';
 import { Product } from '../types';
-import { db, DbOrder, CustomFlowerOption } from '../services/db';
+import { db, DbOrder, CustomFlowerOption, SliderItem, INITIAL_SLIDERS } from '../services/db';
 
 interface CrmModalProps {
   isOpen: boolean;
@@ -52,13 +52,16 @@ const EMOJI_OPTIONS = ['💐', '🌻', '💍', '✨', '🎁', '🎨', '🌸', '�
 export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdateProductCatalog }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
-  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'custom_bouquet' | 'taxonomy' | 'financial_ai'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'custom_bouquet' | 'taxonomy' | 'financial_ai' | 'sliders'>('orders');
 
   // Database & Refresh State
   const [orders, setOrders] = useState<DbOrder[]>([]);
   const [productsList, setProductsList] = useState<Product[]>([]);
   const [isEditingProduct, setIsEditingProduct] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Sliders Carousel State (3 Banners)
+  const [sliders, setSliders] = useState<SliderItem[]>(INITIAL_SLIDERS);
 
   // Custom Bouquet Editor State
   const [customFlowers, setCustomFlowers] = useState<CustomFlowerOption[]>([]);
@@ -187,10 +190,14 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     const loadedProducts = await db.getProducts();
     const loadedCustomFlowers = await db.getCustomFlowers();
     const loadedTaxonomies = await db.getTaxonomies();
+    const loadedSliders = await db.getSliders();
 
     setOrders(loadedOrders || []);
     setProductsList(loadedProducts || []);
     setCustomFlowers(loadedCustomFlowers || []);
+    if (loadedSliders && loadedSliders.length > 0) {
+      setSliders(loadedSliders);
+    }
 
     let finalCategories = INITIAL_CATEGORIES;
     let finalSubcats = INITIAL_SUBCATEGORIES;
@@ -598,6 +605,26 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
     }));
   };
 
+  // Sliders Carousel Handlers
+  const handleSliderChange = (idx: number, field: keyof SliderItem, value: any) => {
+    const updated = [...sliders];
+    updated[idx] = { ...updated[idx], [field]: value };
+    setSliders(updated);
+  };
+
+  const handleSliderHighlightChange = (sliderIdx: number, hlIdx: number, value: string) => {
+    const updated = [...sliders];
+    const newHighlights = [...(updated[sliderIdx].highlights || [])];
+    newHighlights[hlIdx] = value;
+    updated[sliderIdx] = { ...updated[sliderIdx], highlights: newHighlights };
+    setSliders(updated);
+  };
+
+  const handleSaveSliders = async () => {
+    await db.saveSliders(sliders);
+    alert('🎉 ¡Los 3 Banners/Sliders han sido guardados e integrados en la Nube Supabase con éxito!');
+  };
+
   // Filtered Products List
   const filteredProducts = productsList.filter((prod) => {
     const matchesSearch =
@@ -693,6 +720,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                   <option value="financial_ai">🧮 Motor IA Financiero & Precios</option>
                   <option value="custom_bouquet">🌸 Diseña tu Ramo ({customFlowers.length})</option>
                   <option value="taxonomy">🏷️ Categorías Padre e Hijas ({categories.length})</option>
+                  <option value="sliders">🖼️ Editar Sliders ({sliders.length})</option>
                 </select>
                 <ChevronDown className="w-4 h-4 text-[#ff96c5] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
@@ -726,6 +754,16 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
               >
                 <Calculator className="w-4 h-4" />
                 <span>Motor IA Financiero</span>
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('sliders'); setIsEditingProduct(false); }}
+                className={`shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-black uppercase transition-all cursor-pointer ${
+                  activeTab === 'sliders' ? 'bg-[#9C27B0] text-white shadow-lg ring-2 ring-white font-extrabold' : 'bg-white/10 text-white/70 hover:bg-white/20'
+                }`}
+              >
+                <Sparkles className="w-4 h-4 text-[#ffc0dc]" />
+                <span>Editar Sliders ({sliders.length})</span>
               </button>
 
               <button
@@ -1846,6 +1884,160 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                       );
                     })}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: EDIT SLIDERS (3 BANNERS) */}
+            {activeTab === 'sliders' && (
+              <div className="space-y-6 text-left animate-dropdown">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/20 pb-4">
+                  <div>
+                    <h4 className="font-syne text-xl font-black text-white flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-[#ff96c5]" />
+                      <span>Gestor de Sliders / Banners Principales ({sliders.length})</span>
+                    </h4>
+                    <p className="text-xs text-white/80 font-bold">
+                      Edita el título, descripción, insignia y la imagen de cada uno de los 3 sliders interactivos de la historia principal.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveSliders}
+                    className="bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs uppercase tracking-wider px-6 py-3 rounded-full shadow-xl flex items-center gap-2 cursor-pointer transition-all active:scale-95 shrink-0"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>💾 Guardar los 3 Sliders en la Nube</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6">
+                  {sliders.map((sl, idx) => (
+                    <div key={sl.id || idx} className="bg-[#42082B] p-5 sm:p-6 rounded-3xl border-2 border-white/20 space-y-4 shadow-xl">
+                      <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                        <span className="text-xs font-black uppercase tracking-widest text-[#ff96c5]">
+                          🖼️ Slider #0{idx + 1}
+                        </span>
+                        <span className="text-[10px] bg-white/10 px-3 py-1 rounded-full text-white/80 font-bold">
+                          Banner #{idx + 1}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                        {/* Image Preview & Upload Left */}
+                        <div className="md:col-span-4 space-y-3">
+                          <label className="text-xs font-extrabold text-white block">
+                            Imagen del Slider #{idx + 1} *
+                          </label>
+                          <div className="relative aspect-4/3 rounded-2xl overflow-hidden border-2 border-white/30 bg-black/40 shadow-inner group">
+                            <img
+                              src={sl.image || 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800'}
+                              alt={`Slider ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              value={sl.image}
+                              onChange={(e) => handleSliderChange(idx, 'image', e.target.value)}
+                              placeholder="URL de la imagen (o sube archivo abajo)..."
+                              className="w-full bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs text-white font-mono outline-none focus:border-[#f70071]"
+                            />
+
+                            <label className="w-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold py-2 px-3 rounded-xl border border-white/30 flex items-center justify-center gap-2 cursor-pointer transition-all">
+                              <Camera className="w-4 h-4 text-[#ff96c5]" />
+                              <span>Subir Foto del Celular / Galería</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    compressImage(file, (compressedUrl) => {
+                                      handleSliderChange(idx, 'image', compressedUrl);
+                                      alert(`¡Foto cargada para el Slider #${idx + 1}!`);
+                                    });
+                                  }
+                                }}
+                              />
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* Inputs Right */}
+                        <div className="md:col-span-8 space-y-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <label className="text-xs font-bold text-white">Insignia / Badge Superior</label>
+                              <input
+                                type="text"
+                                value={sl.badge}
+                                onChange={(e) => handleSliderChange(idx, 'badge', e.target.value)}
+                                placeholder="Ej: MANIFIESTO ARTESANAL"
+                                className="w-full bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-[#f70071]"
+                              />
+                            </div>
+
+                            <div className="space-y-1 sm:col-span-2">
+                              <label className="text-xs font-bold text-white">Título Principal del Slider</label>
+                              <input
+                                type="text"
+                                value={sl.title}
+                                onChange={(e) => handleSliderChange(idx, 'title', e.target.value)}
+                                placeholder="Ej: Esculturas Vivas Creadas para Perdurar"
+                                className="w-full bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-[#f70071]"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-xs font-bold text-white">Descripción Larga del Banner</label>
+                            <textarea
+                              rows={3}
+                              value={sl.desc}
+                              onChange={(e) => handleSliderChange(idx, 'desc', e.target.value)}
+                              placeholder="Escribe la descripción detallada del banner..."
+                              className="w-full bg-white/10 border border-white/30 rounded-xl px-3 py-2 text-xs font-semibold text-white outline-none focus:border-[#f70071]"
+                            />
+                          </div>
+
+                          {/* Highlights Bullet List */}
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-[#ff96c5] uppercase tracking-wider block">
+                              Puntos Destacados (Lista de Beneficios)
+                            </label>
+                            {(sl.highlights || ['', '', '']).map((hl, hlIdx) => (
+                              <div key={hlIdx} className="flex items-center gap-2">
+                                <CheckCircle2 className="w-4 h-4 text-[#25D366] shrink-0" />
+                                <input
+                                  type="text"
+                                  value={hl}
+                                  onChange={(e) => handleSliderHighlightChange(idx, hlIdx, e.target.value)}
+                                  placeholder={`Beneficio #${hlIdx + 1}...`}
+                                  className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-1.5 text-xs text-white font-bold outline-none focus:border-[#25D366]"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-4 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleSaveSliders}
+                    className="w-full sm:w-auto bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs uppercase tracking-widest px-8 py-4 rounded-full shadow-2xl flex items-center justify-center gap-3 transition-all cursor-pointer active:scale-95"
+                  >
+                    <Save className="w-5 h-5" />
+                    <span>💾 Guardar los 3 Sliders y Sincronizar en la Nube Supabase</span>
+                  </button>
                 </div>
               </div>
             )}
