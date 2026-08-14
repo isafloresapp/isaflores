@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Send, ShoppingBag, MapPin, Calendar, User, Phone, FileText, CheckCircle2, ShieldCheck, Sparkles, MessageCircle, Lock, Zap, Clock, Truck, Copy, Camera, Search } from 'lucide-react';
+import { X, Send, ShoppingBag, MapPin, Calendar, User, Phone, FileText, CheckCircle2, ShieldCheck, Sparkles, MessageCircle, Lock, Zap, Clock, Truck, Copy, Camera, Search, Globe } from 'lucide-react';
 import { CartItem } from '../types';
 import { db } from '../services/db';
 
@@ -91,6 +91,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [shippingDestinationType, setShippingDestinationType] = useState<'rm' | 'regiones'>('rm');
   const [selectedRegion, setSelectedRegion] = useState('Región Metropolitana de Santiago');
   const [selectedComuna, setSelectedComuna] = useState('La Florida');
   const [selectedCourier, setSelectedCourier] = useState('Starken');
@@ -133,15 +134,31 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     shippingText = '🚚 Despacho Región Metropolitana ($3.500 CLP)';
   } else {
     shippingCost = 0;
-    shippingText = `📦 Por Pagar vía ${selectedCourier} (Regiones)`;
+    shippingText = `📦 Envío a Región Por Pagar via ${selectedCourier}`;
   }
 
   const totalAmount = itemsSubtotal + expressSurcharge + shippingCost;
   const minSelectableDate = isExpress ? todayStr : date72hStr;
 
+  const handleDestinationTypeChange = (type: 'rm' | 'regiones') => {
+    setShippingDestinationType(type);
+    if (type === 'rm') {
+      setSelectedRegion('Región Metropolitana de Santiago');
+      setSelectedComuna('La Florida');
+    } else {
+      setSelectedRegion('Región de Valparaíso');
+      setSelectedComuna('Viña del Mar');
+    }
+  };
+
   const handleRegionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const reg = e.target.value;
     setSelectedRegion(reg);
+    if (reg === 'Región Metropolitana de Santiago') {
+      setShippingDestinationType('rm');
+    } else {
+      setShippingDestinationType('regiones');
+    }
     const comunas = REGIONES_CHILE[reg] || [];
     if (comunas.length > 0) {
       setSelectedComuna(comunas[0]);
@@ -170,7 +187,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     const updatedOrders = await db.addOrder({
       customerName,
       phone,
-      addressComuna: `${address}, ${selectedComuna} (${selectedRegion})`,
+      addressComuna: `${address}, ${selectedComuna} (${selectedRegion}) ${!isRM ? `[Envío por Pagar via ${selectedCourier}]` : ''}`,
       productName: itemsSummary,
       total: totalAmount,
       isExpress,
@@ -200,7 +217,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     } else if (isRM) {
       message += `🚚 *Despacho Región Metropolitana:* $3.500 CLP\n`;
     } else {
-      message += `📦 *Envío a Región:* Por Pagar vía ${selectedCourier}\n`;
+      message += `📦 *ENVÍO A REGIÓN:* Por Pagar vía *${selectedCourier}*\n`;
     }
 
     if (isExpress) {
@@ -216,6 +233,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
     if (shippingCost > 0) {
       message += `• *Costo Despacho:* $${shippingCost.toLocaleString('es-CL')} CLP\n`;
+    }
+    if (!isRM) {
+      message += `• *Envío a Región:* Por pagar al recibir vía ${selectedCourier}\n`;
     }
     if (isExpress) {
       message += `• *Recargo Servicio Express:* $3.500 CLP\n`;
@@ -353,7 +373,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     {shippingCost === 0
                       ? isLaFlorida
                         ? 'GRATIS 🎉'
-                        : 'Por Pagar (Courier)'
+                        : `Por Pagar via ${selectedCourier}`
                       : `$${shippingCost.toLocaleString('es-CL')}`}
                   </span>
                 </div>
@@ -414,13 +434,45 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </div>
             </div>
 
-            {/* Customer Information Form */}
+            {/* Customer Information & Shipping Destination Form */}
             <div className="space-y-4">
-              <span className="text-xs font-black uppercase tracking-widest text-[#ff96c5] block">
-                3. Datos de Despacho y Ubicación
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase tracking-widest text-[#ff96c5] block">
+                  3. Datos de Despacho y Ubicación (Chile)
+                </span>
+              </div>
+
+              {/* DESTINATION TYPE TOGGLE: RM vs REGIONES DE CHILE */}
+              <div className="grid grid-cols-2 gap-2 bg-[#42082B] p-1.5 rounded-2xl border border-white/20">
+                <button
+                  type="button"
+                  onClick={() => handleDestinationTypeChange('rm')}
+                  className={`py-2.5 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    shippingDestinationType === 'rm'
+                      ? 'bg-[#f70071] text-white shadow-md border border-white'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span>Región Metropolitana</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleDestinationTypeChange('regiones')}
+                  className={`py-2.5 px-3 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    shippingDestinationType === 'regiones'
+                      ? 'bg-[#25D366] text-white shadow-md border border-white'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>Envíos a Regiones 📦</span>
+                </button>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Nombre */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-extrabold text-white flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-[#ff96c5]" />
@@ -436,6 +488,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   />
                 </div>
 
+                {/* Teléfono */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-extrabold text-white flex items-center gap-1.5">
                     <Phone className="w-3.5 h-3.5 text-[#ff96c5]" />
@@ -451,6 +504,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   />
                 </div>
 
+                {/* Dirección Calle */}
                 <div className="space-y-1.5 sm:col-span-2">
                   <label className="text-xs font-extrabold text-white flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-[#ff96c5]" />
@@ -461,30 +515,32 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     required
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Ej: Av. Vicuña Mackenna 7890"
+                    placeholder="Ej: Av. Vicuña Mackenna 7890, Depto 402"
                     className="w-full bg-white/10 border border-white/30 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none focus:border-[#f70071]"
                   />
                 </div>
 
+                {/* Selección de Región */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-extrabold text-white flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-[#ff96c5]" />
+                    <Globe className="w-3.5 h-3.5 text-[#ff96c5]" />
                     <span>Región de Chile *</span>
                   </label>
                   <select
                     required
                     value={selectedRegion}
                     onChange={handleRegionChange}
-                    className="w-full bg-[#42082B] border border-white/30 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                    className="w-full bg-[#42082B] border-2 border-[#f70071]/60 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
                   >
                     {Object.keys(REGIONES_CHILE).map((reg) => (
                       <option key={reg} value={reg} className="bg-[#2B051C] text-white">
-                        {reg}
+                        {reg} {reg !== 'Región Metropolitana de Santiago' ? '📦 (Envío por Pagar)' : ''}
                       </option>
                     ))}
                   </select>
                 </div>
 
+                {/* Selección de Comuna */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-extrabold text-white flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-[#ff96c5]" />
@@ -494,7 +550,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     required
                     value={selectedComuna}
                     onChange={(e) => setSelectedComuna(e.target.value)}
-                    className="w-full bg-[#42082B] border border-white/30 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                    className="w-full bg-[#42082B] border-2 border-white/30 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
                   >
                     {(REGIONES_CHILE[selectedRegion] || []).map((com) => (
                       <option key={com} value={com} className="bg-[#2B051C] text-white">
@@ -503,6 +559,35 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     ))}
                   </select>
                 </div>
+
+                {/* SELECTOR DE EMPRESA DE ENVIOS A REGIONES (STARKEN, CHILEXPRESS, BLUE EXPRESS, CORREOS) */}
+                {!isRM && (
+                  <div className="sm:col-span-2 space-y-2 bg-[#42082B] p-4 rounded-2xl border-2 border-[#25D366] animate-dropdown">
+                    <label className="text-xs font-black uppercase text-[#25D366] flex items-center gap-2">
+                      <Truck className="w-4 h-4 text-[#25D366]" />
+                      <span>Empresa Transportista para Región (Por Pagar) *</span>
+                    </label>
+                    <p className="text-[11px] text-white/80 font-semibold">
+                      Selecciona por qué courier deseas recibir tu paquete. El costo del flete se cancela al recibir en tu domicilio o sucursal.
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                      {['Starken', 'Chilexpress', 'Blue Express', 'CorreosChile'].map((courier) => (
+                        <button
+                          key={courier}
+                          type="button"
+                          onClick={() => setSelectedCourier(courier)}
+                          className={`py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer border ${
+                            selectedCourier === courier
+                              ? 'bg-[#25D366] text-white border-white shadow-lg ring-2 ring-white'
+                              : 'bg-white/10 text-white/70 hover:bg-white/20 border-white/20'
+                          }`}
+                        >
+                          📦 {courier}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Gift Card Message */}
