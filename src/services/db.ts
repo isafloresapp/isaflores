@@ -103,10 +103,6 @@ class DatabaseService {
       }
     } catch (e) {}
 
-    if (!localProducts || localProducts.length === 0) {
-      localProducts = INITIAL_PRODUCTS;
-    }
-
     try {
       if (supabase) {
         const { data, error } = await supabase.from('products').select('*');
@@ -114,34 +110,36 @@ class DatabaseService {
           // Filter out system rows
           const realData = data.filter((p) => !String(p.id).startsWith('SYS_'));
 
-          const cloudProducts: Product[] = realData.map((p) => ({
-            id: String(p.id),
-            name: p.name || 'Flor IsaFlores',
-            price: Number(p.price) || 14990,
-            category: p.category || 'ramos',
-            categoryLabel: p.category === 'ramos' ? 'Ramos Eternos' : p.category === 'girasoles' ? 'Girasoles' : 'Flores',
-            subcategory: (p as any).subcategory || 'General',
-            description: p.description || '',
-            fullDetails: p.description || '',
-            badge: p.badge || 'Destacado',
-            image: p.image || 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800',
-            images: [p.image || 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800'],
-            bgTint: '#FDF0F5',
-            rating: Number(p.rating) || 5.0,
-            reviewsCount: 15,
-            tags: [p.category || 'flores', 'flores eternas']
-          }));
+          if (realData.length > 0) {
+            const cloudProducts: Product[] = realData.map((p) => ({
+              id: String(p.id),
+              name: p.name || 'Flor IsaFlores',
+              price: Number(p.price) || 14990,
+              category: p.category || 'ramos',
+              categoryLabel: p.category === 'ramos' ? 'Ramos Eternos' : p.category === 'girasoles' ? 'Girasoles' : 'Flores',
+              subcategory: (p as any).subcategory || 'General',
+              description: p.description || '',
+              fullDetails: p.description || '',
+              badge: p.badge || 'Destacado',
+              image: p.image || 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800',
+              images: [p.image || 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800'],
+              bgTint: '#FDF0F5',
+              rating: Number(p.rating) || 5.0,
+              reviewsCount: 15,
+              tags: [p.category || 'flores', 'flores eternas']
+            }));
 
-          // Cloud products ALWAYS take priority! If cloud has custom items, use them.
-          // If cloud has 0 non-system items, reset to initial catalog!
-          const finalList = cloudProducts.length > 0 ? cloudProducts : INITIAL_PRODUCTS;
-
-          this.saveProductsLocal(finalList);
-          return finalList;
+            this.saveProductsLocal(cloudProducts);
+            return cloudProducts;
+          }
         }
       }
     } catch (e) {
       console.warn('Supabase cloud fetch products note:', e);
+    }
+
+    if (!localProducts || localProducts.length === 0) {
+      localProducts = INITIAL_PRODUCTS;
     }
 
     return localProducts;
@@ -158,7 +156,7 @@ class DatabaseService {
       try {
         const lightweight = products.map((p) => ({
           ...p,
-          image: p.image.length > 300000 ? 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800' : p.image
+          image: p.image && p.image.length > 300000 ? 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800' : p.image
         }));
         localStorage.setItem(DB_PRODUCTS_KEY, JSON.stringify(lightweight));
       } catch (e2) {}
@@ -242,23 +240,6 @@ class DatabaseService {
     const updated = current.filter((p) => p.id !== productId);
     this.saveProductsLocal(updated);
     return updated;
-  }
-
-  async clearAllTestProducts(): Promise<Product[]> {
-    try {
-      if (supabase) {
-        const { data } = await supabase.from('products').select('id');
-        if (data) {
-          const testIds = data.map((p) => String(p.id)).filter((id) => !id.startsWith('SYS_'));
-          for (const id of testIds) {
-            await supabase.from('products').delete().eq('id', id);
-          }
-        }
-      }
-    } catch (e) {}
-
-    this.saveProductsLocal(INITIAL_PRODUCTS);
-    return INITIAL_PRODUCTS;
   }
 
   // 2. ORDERS MANAGEMENT PERSISTENCE
