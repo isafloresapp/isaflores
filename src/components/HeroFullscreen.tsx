@@ -1,5 +1,6 @@
 import React from 'react';
 import { Sparkles, ArrowRight, Zap, Gift, ShieldCheck, Flame, Bike, Clock, Award, Snowflake } from 'lucide-react';
+import heroArtImg from '../assets/images/hero_art.jpg';
 
 interface HeroFullscreenProps {
   cartCount: number;
@@ -13,7 +14,8 @@ interface HeroFullscreenProps {
 
 const WINTER_CATEGORY_BUBBLES = [
   { id: 'todos', label: 'Ver Todo', icon: '❄️', color: 'bg-cyan-50 border-cyan-200' },
-  { id: 'ramos', label: 'Ramos Eternos', icon: '💐', color: 'bg-pink-50 border-pink-200' },
+  { id: 'flores-temporada', label: 'Flores Temporada', icon: '🌺', color: 'bg-pink-50 border-pink-200' },
+  { id: 'ramos', label: 'Ramos Eternos', icon: '💐', color: 'bg-rose-50 border-rose-200' },
   { id: 'girasoles', label: 'Girasoles', icon: '🌻', color: 'bg-amber-50 border-amber-200' },
   { id: 'bodas', label: 'Bodas & Novias', icon: '💍', color: 'bg-purple-50 border-purple-200' },
   { id: 'regalos', label: 'Regalos', icon: '🎁', color: 'bg-red-50 border-red-200' },
@@ -65,15 +67,15 @@ export const HeroFullscreen: React.FC<HeroFullscreenProps> = ({
             </div>
           </div>
 
-          {/* Banner Promo Side Graphics */}
-          <div className="relative shrink-0 w-full md:w-72 h-48 sm:h-56 rounded-2xl overflow-hidden border-2 border-white/30 shadow-2xl">
+          {/* Banner Promo Side Graphics with New Artistic Image */}
+          <div className="relative shrink-0 w-full md:w-80 h-56 sm:h-64 rounded-2xl overflow-hidden border-2 border-white/40 shadow-2xl group">
             <img
-              src="https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800"
-              alt="Flores IsaFlores Colección Invernal"
-              className="w-full h-full object-cover"
+              src={heroArtImg}
+              alt="IsaFlores Arte en Limpiapipas"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#1A237E]/80 to-transparent flex items-end p-4">
-              <span className="bg-[#00695C] text-white text-[10px] font-black uppercase px-3 py-1 rounded-full">
+            <div className="absolute inset-0 bg-gradient-to-t from-[#1A237E]/80 via-transparent to-transparent flex items-end p-4">
+              <span className="bg-[#00695C] text-white text-[10px] font-black uppercase px-3 py-1 rounded-full shadow-lg border border-white/30">
                 ❄️ Entrega Protegida / Express
               </span>
             </div>
