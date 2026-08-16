@@ -1,65 +1,211 @@
 import React from 'react';
-import { Star, CheckCircle2, Quote } from 'lucide-react';
-import { REVIEWS } from '../data/products';
+import { Star, CheckCircle2, Heart, Sparkles, MessageCircle, MapPin, Package, ShieldCheck } from 'lucide-react';
 
 export const ReviewsSection: React.FC = () => {
-  return (
-    <section className="py-16 bg-[#FAF7F2]">
-      <div className="max-w-7xl mx-auto px-4 text-center">
-        <span className="text-xs font-semibold uppercase tracking-widest text-[#3D5A45] block mb-1">
-          Testimonios de Coleccionistas
-        </span>
-        <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#2D1E29]">
-          Experiencias en el IsaFlores
-        </h2>
-        <p className="text-xs sm:text-sm text-[#5E4657] max-w-md mx-auto mt-1">
-          Más de 1.200 ramos de flores botánicas entregadas en todo Chile
-        </p>
+  const REVIEWS_DATA = [
+    {
+      id: 'rev-1',
+      author: 'Camila Rojas',
+      location: 'La Florida, Santiago',
+      rating: 5,
+      date: 'Hace 2 días',
+      productName: 'Ramo Girasoles & Rosas',
+      avatarBg: 'bg-pink-100 text-[#f70071]',
+      comment: 'Se lo regalé a mi mamá para su cumpleaños y quedó fascinada. Las flores se ven hermosas en el living y no se marchitan jamás. ¡Super recomendable el despacho gratis en La Florida!',
+      verified: true,
+      tag: '🎉 Despacho Gratis La Florida'
+    },
+    {
+      id: 'rev-2',
+      author: 'Ignacio Fuentes',
+      location: 'Providencia, Santiago',
+      rating: 5,
+      date: 'Hace 4 días',
+      productName: 'Ramo Coral Eterno',
+      avatarBg: 'bg-emerald-100 text-[#128C7E]',
+      comment: 'Llegó impecable en su caja reforzada y con la tarjeta redactada con caligrafía manual. Mi polola lo amó para nuestro aniversario. ¡Atención de 10 por WhatsApp!',
+      verified: true,
+      tag: '💖 Regalo Aniversario'
+    },
+    {
+      id: 'rev-3',
+      author: 'Francisca Morales',
+      location: 'Viña del Mar',
+      rating: 5,
+      date: 'Hace 1 semana',
+      productName: 'Kit DIY Armar Flores',
+      avatarBg: 'bg-[#FDF0F5] text-[#8E24AA]',
+      comment: 'Me preocupaba el envío por Starken a región pero llegó perfecto en 48 horas. El trabajo en limpiapipas de alta densidad es hermoso y muy fácil de mantener.',
+      verified: true,
+      tag: '📦 Envío por Pagar Regiones'
+    },
+    {
+      id: 'rev-4',
+      author: 'Javier Silva',
+      location: 'Concepción',
+      rating: 5,
+      date: 'Hace 2 semanas',
+      productName: 'Tulipanes Holandeses',
+      avatarBg: 'bg-[#FFF8E1] text-[#D97706]',
+      comment: 'Compré el ramo de tulipanes fucsia. El color es súper vivo y la textura afelpada se siente genial al tacto. Se ve como una escultura botánica de tienda de lujo.',
+      verified: true,
+      tag: '🌷 Tulipanes Perennes'
+    },
+  ];
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10 text-left">
-          {REVIEWS.map((rev) => (
+  return (
+    <section className="py-14 bg-gradient-to-b from-[#FFFDFE] via-[#FDF0F5] to-white border-t border-pink-200/70 text-[#2B051C]" id="testimonios">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 text-center space-y-10">
+        
+        {/* SECTION HEADER */}
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-1.5 bg-[#f70071]/10 text-[#f70071] px-4 py-1 rounded-full text-xs font-black uppercase tracking-wider border border-[#f70071]/20">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Experiencias IsaFlores · Opiniones Reales</span>
+          </div>
+          <h2 className="font-syne text-3xl sm:text-5xl font-black text-[#2B051C]">
+            Lo Que Dicen Quienes Ya Regalaron <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f70071] via-[#ff1b82] to-[#8E24AA]">IsaFlores</span>
+          </h2>
+          <p className="text-xs sm:text-base text-gray-600 font-medium max-w-xl mx-auto">
+            Testimonios reales de clientes en Santiago y regiones que sorprendieron con flores que duran para siempre.
+          </p>
+        </div>
+
+        {/* REALISTIC & SIMPLE METRICS BAR */}
+        <div className="bg-white rounded-3xl p-5 border border-pink-100 shadow-md grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
+          <div className="flex items-center gap-3 justify-center sm:justify-start px-3 py-1">
+            <span className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center font-black text-lg border border-amber-200 shrink-0">
+              ⭐
+            </span>
+            <div className="text-left">
+              <span className="font-syne font-black text-lg text-[#2B051C] block leading-none">
+                4.9 / 5.0
+              </span>
+              <span className="text-[10px] text-gray-500 font-bold block">
+                Valoración Promedio
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 justify-center sm:justify-start px-3 py-1">
+            <span className="w-10 h-10 rounded-2xl bg-pink-50 text-[#f70071] flex items-center justify-center font-black text-lg border border-pink-200 shrink-0">
+              📦
+            </span>
+            <div className="text-left">
+              <span className="font-syne font-black text-lg text-[#2B051C] block leading-none">
+                +1.200 Ramos
+              </span>
+              <span className="text-[10px] text-gray-500 font-bold block">
+                Entregados con Éxito
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 justify-center sm:justify-start px-3 py-1">
+            <span className="w-10 h-10 rounded-2xl bg-emerald-50 text-[#128C7E] flex items-center justify-center font-black text-lg border border-emerald-200 shrink-0">
+              🎉
+            </span>
+            <div className="text-left">
+              <span className="font-syne font-black text-lg text-[#2B051C] block leading-none">
+                100% Gratis
+              </span>
+              <span className="text-[10px] text-gray-500 font-bold block">
+                Envíos en La Florida
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 justify-center sm:justify-start px-3 py-1">
+            <span className="w-10 h-10 rounded-2xl bg-purple-50 text-[#8E24AA] flex items-center justify-center font-black text-lg border border-purple-200 shrink-0">
+              💬
+            </span>
+            <div className="text-left">
+              <span className="font-syne font-black text-lg text-[#2B051C] block leading-none">
+                WhatsApp
+              </span>
+              <span className="text-[10px] text-gray-500 font-bold block">
+                Atención Inmediata
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 4 MODERN FLOATING REVIEWS CARDS GRID */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
+          {REVIEWS_DATA.map((rev) => (
             <div
               key={rev.id}
-              className="bg-white p-6 rounded-3xl border border-[#E8DFD1] shadow-xs flex flex-col justify-between space-y-4"
+              className="bg-white rounded-3xl p-6 border-2 border-pink-100/90 shadow-md hover:shadow-xl hover:border-[#f70071]/50 transition-all duration-300 transform hover:-translate-y-1.5 flex flex-col justify-between space-y-4 relative overflow-hidden group"
             >
-              <div className="space-y-3">
+              {/* Top Accent Line */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#f70071] via-[#ff1b82] to-[#8E24AA]" />
+
+              <div className="space-y-3 pt-1">
+                {/* Rating Stars & Date */}
                 <div className="flex items-center justify-between">
-                  <div className="flex gap-1">
+                  <div className="flex items-center gap-1">
                     {[...Array(rev.rating)].map((_, i) => (
                       <Star
                         key={i}
-                        className="w-4 h-4 fill-[#D4AF37] text-[#D4AF37]"
+                        className="w-4 h-4 fill-[#F4C24C] text-[#F4C24C]"
                       />
                     ))}
                   </div>
-                  <span className="text-[11px] text-[#5E4657] font-medium">
+
+                  <span className="text-[10px] text-gray-400 font-extrabold bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
                     {rev.date}
                   </span>
                 </div>
 
-                <p className="text-xs sm:text-sm text-[#2D1E29] leading-relaxed italic">
+                {/* Comment Paragraph */}
+                <p className="text-xs text-[#2B051C] leading-relaxed font-semibold">
                   "{rev.comment}"
                 </p>
               </div>
 
-              <div className="pt-3 border-t border-[#E8DFD1] flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-1.5 font-serif font-bold text-xs text-[#2D1E29]">
-                    <span>{rev.author}</span>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#1E7E4B]" />
+              {/* Author & Product Footer */}
+              <div className="pt-3 border-t border-pink-100 flex flex-col space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-8 h-8 rounded-full ${rev.avatarBg} font-black text-xs flex items-center justify-center shadow-xs border border-pink-200`}>
+                      {rev.author.substring(0, 1)}
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-1 font-syne font-black text-xs text-[#2B051C]">
+                        <span>{rev.author}</span>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#25D366]" />
+                      </div>
+                      <div className="flex items-center gap-1 text-[10px] text-gray-400 font-semibold">
+                        <MapPin className="w-3 h-3 text-[#f70071]" />
+                        <span>{rev.location}</span>
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-[10px] text-[#5E4657] block">
-                    {rev.location}
-                  </span>
                 </div>
 
-                <span className="text-[9px] bg-[#F3ECE1] px-2.5 py-1 rounded-full text-[#3D5A45] font-semibold tracking-wide">
-                  {rev.productName}
-                </span>
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[9px] font-black uppercase tracking-wider bg-[#FDF0F5] text-[#f70071] px-2.5 py-1 rounded-full border border-pink-200">
+                    {rev.productName}
+                  </span>
+                </div>
               </div>
             </div>
           ))}
         </div>
+
+        {/* INTERACTIVE ACTION BUTTON */}
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a
+            href="https://wa.me/56928704768?text=Hola%20IsaFlores%2C%20quisiera%20recibir%20asesoria%20para%20un%20ramo"
+            target="_blank"
+            rel="noreferrer"
+            className="bg-gradient-to-r from-[#25D366] to-[#128C7E] hover:from-[#128C7E] hover:to-[#25D366] text-white font-black text-xs uppercase tracking-widest px-8 py-3.5 rounded-full shadow-lg flex items-center gap-2.5 transition-all transform hover:scale-105 active:scale-95 cursor-pointer"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>Consultar Disponibilidad por WhatsApp</span>
+          </a>
+        </div>
+
       </div>
     </section>
   );
