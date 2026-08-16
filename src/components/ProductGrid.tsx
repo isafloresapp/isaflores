@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Product } from '../types';
-import { Heart, Eye, Plus, Star, Flame, Clock, Bike, Snowflake, ArrowRight, Sparkles, Layers, Check } from 'lucide-react';
+import { Heart, Eye, Plus, Star, Flame, Clock, Bike, Snowflake, ArrowRight, Sparkles, Layers, Check, Grid, List, SlidersHorizontal, ArrowUpDown, ShoppingBag } from 'lucide-react';
 import heroBouquetImg from '../assets/images/hero_pipe_cleaner_bouquet_1786069749958.jpg';
 import girasolesImg from '../assets/images/girasoles_limpiapipas_1786069760102.jpg';
 import kitDiyImg from '../assets/images/kit_diy_limpiapipas_1786069771911.jpg';
@@ -18,71 +18,56 @@ interface ProductGridProps {
   onOpenCustomBuilder: () => void;
 }
 
-const CATEGORY_IMAGE_MENU = [
+const CATEGORY_AVATARS = [
+  {
+    id: 'todos',
+    label: 'Todas las Flores',
+    icon: '✨',
+    image: heroBouquetImg,
+    badge: 'Ver Todo',
+  },
   {
     id: 'flores-temporada',
     label: 'Flores Temporada',
-    subtitle: 'Rosas, Liliums, Tulipanes & Girasoles',
-    badge: '🔥 Tendencia',
     icon: '🌺',
     image: 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800',
-    gradient: 'from-[#f70071]/85 to-[#2B051C]/90',
+    badge: 'Tendencia',
   },
   {
     id: 'ramos',
     label: 'Ramos Eternos',
-    subtitle: 'Diseños de Autor en Limpiapipas',
-    badge: '💐 Insignia',
     icon: '💐',
     image: heroBouquetImg,
-    gradient: 'from-[#8E24AA]/85 to-[#2B051C]/90',
+    badge: 'Insignia',
   },
   {
     id: 'girasoles',
-    label: 'Colección Girasoles',
-    subtitle: 'Chenille Amarillo & Núcleo Pardo',
-    badge: '🌻 Favoritos',
+    label: 'Girasoles',
     icon: '🌻',
     image: girasolesImg,
-    gradient: 'from-[#E65100]/85 to-[#2B051C]/90',
+    badge: 'Favoritos',
   },
   {
     id: 'bodas',
     label: 'Bodas & Novias',
-    subtitle: 'Bouquets Nupciales & Distintivos',
-    badge: '💍 Elegante',
     icon: '💍',
     image: heroArtImg,
-    gradient: 'from-[#4A148C]/85 to-[#2B051C]/90',
+    badge: 'Elegante',
   },
   {
     id: 'kits',
-    label: 'Kits DIY Armar',
-    subtitle: '50 Fibras + Guía de Moldeado',
-    badge: '🎨 Manualidades',
+    label: 'Kits DIY',
     icon: '🎨',
     image: kitDiyImg,
-    gradient: 'from-[#00695C]/85 to-[#2B051C]/90',
+    badge: 'Manualidades',
   },
   {
     id: 'regalos',
-    label: 'Regalos & Cajas',
-    subtitle: 'Arreglos en Cofre + Tarjeta',
-    badge: '🎁 Sorpresa',
+    label: 'Regalos',
     icon: '🎁',
     image: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&q=80&w=800',
-    gradient: 'from-[#C2185B]/85 to-[#2B051C]/90',
+    badge: 'Sorpresas',
   },
-];
-
-const WINTER_FILTER_CHIPS = [
-  { id: 'todos', label: 'Todas las Flores', icon: '❄️' },
-  { id: 'flores-temporada', label: 'Flores Temporada', icon: '🌺' },
-  { id: 'ramos', label: 'Ramos Eternos', icon: '💐' },
-  { id: 'girasoles', label: 'Girasoles', icon: '🌻' },
-  { id: 'bodas', label: 'Bodas & Novias', icon: '💍' },
-  { id: 'regalos', label: 'Regalos', icon: '🎁' },
-  { id: 'kits', label: 'Kits DIY', icon: '🎨' },
 ];
 
 export const ProductGrid: React.FC<ProductGridProps> = ({
@@ -96,6 +81,10 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   onQuickView,
   onOpenCustomBuilder,
 }) => {
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState<'featured' | 'price_asc' | 'price_desc' | 'rating'>('featured');
+
+  // Filter & Sort Logic
   const filteredProducts = products.filter((p) => {
     const matchesCat = selectedCategory === 'todos' || p.category === selectedCategory;
     const matchesSearch =
@@ -105,278 +94,378 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     return matchesCat && matchesSearch;
   });
 
-  const topRatedProducts = products.filter((p) => p.rating >= 4.9).slice(0, 4);
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    if (sortBy === 'price_asc') return a.price - b.price;
+    if (sortBy === 'price_desc') return b.price - a.price;
+    if (sortBy === 'rating') return b.rating - a.rating;
+    return 0;
+  });
+
+  const activeCatObj = CATEGORY_AVATARS.find((c) => c.id === selectedCategory) || CATEGORY_AVATARS[0];
 
   return (
-    <section className="py-8 bg-[#F4F8FA] text-[#1A237E]" id="productos">
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 text-left space-y-10">
+    <section className="py-10 bg-gradient-to-b from-[#FDF0F5] via-[#FFFDFE] to-[#FDF0F5] text-[#1A237E]" id="productos">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 text-left space-y-8">
 
-        {/* VISUAL CATEGORY IMAGE MENU SECTION (Menú de Imágenes de Categorías) */}
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-cyan-200 pb-3">
+        {/* SECTION HEADER & LUXURY CATEGORY AVATAR STORIES CAROUSEL */}
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#f70071]/15 pb-4">
             <div>
-              <div className="inline-flex items-center gap-1.5 bg-[#f70071]/10 text-[#f70071] px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider mb-1">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Colecciones Florales IsaFlores</span>
+              <div className="inline-flex items-center gap-1.5 bg-[#f70071]/10 text-[#f70071] px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider mb-2">
+                <Sparkles className="w-3.5 h-3.5 text-[#f70071]" />
+                <span>Catálogo Artesanal de Autor</span>
               </div>
-              <h2 className="font-syne text-2xl sm:text-4xl font-black text-[#1A237E]">
-                Menú de Categorías Visuales
+              <h2 className="font-syne text-3xl sm:text-4xl font-black text-[#2B051C] leading-tight">
+                Flores Eternas Hechas a Mano
               </h2>
             </div>
-            <span className="text-xs font-bold text-[#00838F] block">
-              Toca una categoría con foto para filtrar la tienda
-            </span>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onOpenCustomBuilder}
+                className="bg-[#2B051C] hover:bg-[#42082B] text-white text-xs font-black uppercase tracking-wider px-5 py-2.5 rounded-full shadow-lg transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+              >
+                <Sparkles className="w-4 h-4 text-[#ffc0dc]" />
+                <span>Diseña tu Ramo Taller</span>
+              </button>
+            </div>
           </div>
 
-          {/* Category Cards Grid & Horizontal Scroll */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-            {CATEGORY_IMAGE_MENU.map((cat) => {
-              const isSelected = selectedCategory === cat.id;
+          {/* Luxury Horizontal Story Avatar Category Menu */}
+          <div className="relative">
+            <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar py-2">
+              {CATEGORY_AVATARS.map((cat) => {
+                const isSelected = selectedCategory === cat.id;
+
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className="shrink-0 flex flex-col items-center gap-2 group cursor-pointer text-center outline-none"
+                  >
+                    {/* Story Circle Avatar with Glowing Halo */}
+                    <div
+                      className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full p-1 transition-all duration-300 transform group-hover:scale-105 ${
+                        isSelected
+                          ? 'bg-gradient-to-tr from-[#f70071] via-[#ff1b82] to-[#8E24AA] shadow-lg ring-4 ring-[#f70071]/20'
+                          : 'bg-white/80 border-2 border-pink-200 group-hover:border-[#f70071]'
+                      }`}
+                    >
+                      <div className="w-full h-full rounded-full overflow-hidden relative bg-pink-50">
+                        <img
+                          src={cat.image}
+                          alt={cat.label}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                      </div>
+
+                      {/* Floating Emoji Icon Badge */}
+                      <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white text-sm flex items-center justify-center shadow-md border border-pink-100">
+                        {cat.icon}
+                      </span>
+                    </div>
+
+                    {/* Label & Active Pill Indicator */}
+                    <div className="space-y-0.5 max-w-[90px] sm:max-w-[105px]">
+                      <span
+                        className={`text-xs font-black block truncate transition-colors ${
+                          isSelected ? 'text-[#f70071]' : 'text-[#2B051C] group-hover:text-[#f70071]'
+                        }`}
+                      >
+                        {cat.label}
+                      </span>
+
+                      <span
+                        className={`text-[9px] font-bold px-2 py-0.5 rounded-full inline-block ${
+                          isSelected
+                            ? 'bg-[#f70071] text-white'
+                            : 'bg-white text-gray-500 border border-gray-200'
+                        }`}
+                      >
+                        {cat.badge}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* E-COMMERCE TOOLBAR: CATEGORY HEADER, SORT & VIEW SWITCHER */}
+        <div className="bg-white p-4 sm:p-5 rounded-3xl border border-pink-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-2xl bg-[#FDF0F5] text-[#f70071] flex items-center justify-center text-xl font-bold border border-pink-200">
+              {activeCatObj.icon}
+            </span>
+            <div>
+              <h3 className="font-syne text-lg sm:text-xl font-black text-[#2B051C] flex items-center gap-2">
+                <span>{activeCatObj.label}</span>
+                <span className="text-xs font-bold bg-[#FDF0F5] text-[#f70071] px-2.5 py-0.5 rounded-full border border-pink-200">
+                  {sortedProducts.length} flores
+                </span>
+              </h3>
+              <span className="text-xs text-gray-500 font-semibold block">
+                {searchQuery ? `Resultados para "${searchQuery}"` : 'Colección artesanal en chenille y goma EVA'}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            {/* Sort Selector */}
+            <div className="flex items-center gap-2 bg-[#FDF0F5] px-3.5 py-2 rounded-2xl border border-pink-200 text-xs font-bold text-[#2B051C]">
+              <ArrowUpDown className="w-4 h-4 text-[#f70071]" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="bg-transparent outline-none cursor-pointer font-bold text-[#2B051C]"
+              >
+                <option value="featured">🔥 Populares</option>
+                <option value="price_asc">💵 Menor Precio</option>
+                <option value="price_desc">💎 Mayor Precio</option>
+                <option value="rating">⭐ Mejor Valorados</option>
+              </select>
+            </div>
+
+            {/* View Mode Toggle: Grid vs Compact List */}
+            <div className="flex items-center bg-[#FDF0F5] p-1 rounded-2xl border border-pink-200">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-xl transition-all cursor-pointer ${
+                  viewMode === 'grid' ? 'bg-[#f70071] text-white shadow-md' : 'text-gray-500 hover:text-[#2B051C]'
+                }`}
+                title="Vista en Rejilla"
+              >
+                <Grid className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-xl transition-all cursor-pointer ${
+                  viewMode === 'list' ? 'bg-[#f70071] text-white shadow-md' : 'text-gray-500 hover:text-[#2B051C]'
+                }`}
+                title="Vista en Lista"
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* PRODUCTS CATALOG LISTING (GRID VS LIST VISTA ELEGANTE) */}
+        {sortedProducts.length === 0 ? (
+          <div className="bg-white rounded-3xl p-12 text-center border border-pink-100 space-y-4 max-w-md mx-auto shadow-sm">
+            <div className="w-16 h-16 rounded-full bg-[#FDF0F5] text-[#f70071] flex items-center justify-center mx-auto text-3xl">
+              🌸
+            </div>
+            <h4 className="font-syne text-xl font-bold text-[#2B051C]">No se encontraron ramos</h4>
+            <p className="text-xs text-gray-500 font-semibold leading-relaxed">
+              No hay flores disponibles en la categoría seleccionada o con ese término de búsqueda.
+            </p>
+            <button
+              onClick={() => setSelectedCategory('todos')}
+              className="bg-[#f70071] hover:bg-[#ff1b82] text-white font-black text-xs uppercase px-8 py-3 rounded-full shadow-lg transition-all cursor-pointer"
+            >
+              Ver Todo el Catálogo
+            </button>
+          </div>
+        ) : viewMode === 'grid' ? (
+          /* GRID VIEW: LUXURY E-COMMERCE CARDS */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {sortedProducts.map((product) => {
+              const isWishlisted = wishlistIds.includes(product.id);
+              const productImage =
+                product.image ||
+                (product as any).images?.[0] ||
+                'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800';
 
               return (
                 <div
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`group relative h-48 sm:h-56 rounded-3xl overflow-hidden cursor-pointer shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-2 ${
-                    isSelected
-                      ? 'border-[#f70071] ring-4 ring-[#f70071]/30 scale-[1.02]'
-                      : 'border-white hover:border-cyan-300'
-                  }`}
+                  key={product.id}
+                  onClick={() => onQuickView(product)}
+                  className="bg-white rounded-3xl overflow-hidden border border-pink-100/80 shadow-xs hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col justify-between relative transform hover:-translate-y-1"
                 >
-                  {/* Category Image */}
-                  <img
-                    src={cat.image}
-                    alt={cat.label}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                  />
+                  {/* Photo Container */}
+                  <div className="relative aspect-4/3 overflow-hidden bg-[#FDF0F5]">
+                    <img
+                      src={productImage}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    />
 
-                  {/* Gradient Overlay */}
-                  <div className={`absolute inset-0 bg-gradient-to-t ${cat.gradient} p-3 sm:p-4 flex flex-col justify-between text-white transition-opacity`} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                  {/* Top Badge & Selected Status */}
-                  <div className="relative z-10 flex items-center justify-between">
-                    <span className="bg-black/40 backdrop-blur-md text-white text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border border-white/20">
-                      {cat.badge}
-                    </span>
-
-                    {isSelected && (
-                      <span className="w-6 h-6 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-lg animate-bounce">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    {/* Top Floating Badges */}
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
+                      <span className="bg-white/95 backdrop-blur-md text-[#2B051C] text-[10px] font-black uppercase px-3 py-1 rounded-full shadow-md flex items-center gap-1 border border-pink-100">
+                        <Star className="w-3.5 h-3.5 fill-[#F4C24C] text-[#F4C24C]" />
+                        <span>{product.rating}</span>
                       </span>
-                    )}
+
+                      <span className="bg-[#2B051C]/90 text-[#ffc0dc] text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-md">
+                        {product.badge || 'Nuevo'}
+                      </span>
+                    </div>
+
+                    {/* Wishlist Heart Top Right */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleWishlist(product);
+                      }}
+                      className={`absolute top-3 right-3 p-2.5 rounded-full backdrop-blur-md shadow-md transition-all z-10 cursor-pointer ${
+                        isWishlisted
+                          ? 'bg-[#f70071] text-white border border-[#f70071]'
+                          : 'bg-white/90 text-gray-400 hover:text-[#f70071] border border-pink-100'
+                      }`}
+                    >
+                      <Heart className="w-4 h-4 fill-current" />
+                    </button>
+
+                    {/* Quick Hover Action overlay */}
+                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      <span className="bg-white/95 text-[#2B051C] text-xs font-bold px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5">
+                        <Eye className="w-3.5 h-3.5 text-[#f70071]" />
+                        <span>Ver Detalle</span>
+                      </span>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAddToCart(product);
+                        }}
+                        className="bg-[#25D366] hover:bg-[#128C7E] text-white text-xs font-black px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1 transition-all"
+                      >
+                        <Plus className="w-4 h-4 stroke-[3]" />
+                        <span>Añadir</span>
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Bottom Text Content */}
-                  <div className="relative z-10 space-y-1 text-left">
-                    <div className="text-xl sm:text-2xl drop-shadow-md">{cat.icon}</div>
-                    <h3 className="font-syne font-black text-sm sm:text-base text-white leading-tight drop-shadow-sm group-hover:text-[#ffc0dc] transition-colors">
-                      {cat.label}
-                    </h3>
-                    <p className="text-[10px] text-white/80 font-medium line-clamp-1">
-                      {cat.subtitle}
-                    </p>
-                    <div className="pt-1 flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-[#ff96c5] group-hover:translate-x-1 transition-transform">
-                      <span>Ver Flores</span>
-                      <ArrowRight className="w-3 h-3" />
+                  {/* Card Bottom Details */}
+                  <div className="p-5 space-y-3 flex-1 flex flex-col justify-between text-left">
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-[#f70071] block">
+                        {product.categoryLabel || product.category}
+                      </span>
+                      <h4 className="font-syne font-black text-lg text-[#2B051C] group-hover:text-[#f70071] transition-colors leading-snug line-clamp-1">
+                        {product.name}
+                      </h4>
+                      <p className="text-xs text-gray-500 font-medium line-clamp-2 leading-relaxed">
+                        {product.description}
+                      </p>
+                    </div>
+
+                    <div className="pt-2 border-t border-pink-100 flex items-center justify-between">
+                      <div>
+                        <span className="font-syne font-black text-xl text-[#f70071] block">
+                          ${product.price.toLocaleString('es-CL')} <span className="text-xs font-semibold text-gray-400">CLP</span>
+                        </span>
+                        <span className="text-[10px] text-emerald-600 font-bold block">
+                          🎉 Despacho Gratis La Florida
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAddToCart(product);
+                        }}
+                        className="bg-[#f70071] hover:bg-[#ff1b82] text-white p-3 rounded-2xl shadow-lg transition-all cursor-pointer transform group-hover:scale-105 flex items-center justify-center"
+                        title="Añadir a la bolsa"
+                      >
+                        <ShoppingBag className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
-
-        {/* Sleek Pills Category Filter Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-          {WINTER_FILTER_CHIPS.map((chip) => (
-            <button
-              key={chip.id}
-              onClick={() => setSelectedCategory(chip.id)}
-              className={`shrink-0 px-4 py-2 rounded-full text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 border ${
-                selectedCategory === chip.id
-                  ? 'bg-[#1A237E] text-white border-[#1A237E] shadow-md ring-2 ring-[#00838F]'
-                  : 'bg-white text-[#1A237E] border-cyan-200 hover:bg-cyan-50'
-              }`}
-            >
-              <span>{chip.icon}</span>
-              <span>{chip.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Uber Eats "Seleccionados para Ti" Featured Row */}
-        {selectedCategory === 'todos' && !searchQuery && (
+        ) : (
+          /* COMPACT LIST VIEW */
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Flame className="w-5 h-5 text-[#C2185B] fill-[#C2185B]" />
-                <h3 className="font-extrabold text-xl sm:text-2xl text-[#1A237E]">
-                  Seleccionados para Ti
-                </h3>
-              </div>
-              <span className="text-xs font-bold text-[#00838F] uppercase">
-                ❄️ Envío Gratis en La Florida
-              </span>
-            </div>
+            {sortedProducts.map((product) => {
+              const isWishlisted = wishlistIds.includes(product.id);
+              const productImage =
+                product.image ||
+                (product as any).images?.[0] ||
+                'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800';
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {topRatedProducts.map((p) => {
-                const pImage = p.image || (p as any).images?.[0];
-                return (
-                  <div
-                    key={`feat-${p.id}`}
-                    onClick={() => onQuickView(p)}
-                    className="bg-white rounded-2xl p-4 border border-cyan-100 shadow-xs hover:shadow-md transition-all cursor-pointer group flex justify-between gap-3 relative"
-                  >
-                    <div className="flex-1 flex flex-col justify-between space-y-2">
-                      <div className="space-y-1">
-                        <span className="bg-[#00838F] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block">
-                          🔥 Popular
-                        </span>
-                        <h4 className="font-extrabold text-sm text-[#1A237E] group-hover:text-[#00838F] transition-colors leading-tight">
-                          {p.name}
-                        </h4>
-                      </div>
-
-                      <div className="space-y-1">
-                        <span className="font-extrabold text-base text-[#C2185B] block">
-                          ${p.price.toLocaleString('es-CL')} CLP
-                        </span>
-                        <span className="text-[10px] text-emerald-700 font-bold block">
-                          Envío Gratis
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="relative w-24 h-24 rounded-2xl overflow-hidden bg-cyan-50 shrink-0 border border-cyan-100">
-                      <img
-                        src={pImage}
-                        alt={p.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onAddToCart(p);
-                        }}
-                        className="absolute bottom-1 right-1 bg-[#C2185B] hover:bg-[#8E24AA] text-white p-2 rounded-full shadow-md cursor-pointer transition-all"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                    </div>
+              return (
+                <div
+                  key={product.id}
+                  onClick={() => onQuickView(product)}
+                  className="bg-white rounded-3xl p-4 border border-pink-100 shadow-xs hover:shadow-lg transition-all cursor-pointer group flex flex-col sm:flex-row justify-between gap-4 text-left relative"
+                >
+                  <div className="relative w-full sm:w-44 h-40 sm:h-36 rounded-2xl overflow-hidden bg-[#FDF0F5] shrink-0">
+                    <img
+                      src={productImage}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <span className="absolute top-2 left-2 bg-[#2B051C]/90 text-white text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full">
+                      ⭐ {product.rating}
+                    </span>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
-        {/* Uber Eats Clean Split-Card Product Items List */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between border-b border-cyan-200 pb-3">
-            <h3 className="font-extrabold text-xl sm:text-2xl text-[#1A237E]">
-              {selectedCategory === 'todos' ? 'Menú de Ramos & Flores' : WINTER_FILTER_CHIPS.find(c => c.id === selectedCategory)?.label}
-            </h3>
-            <span className="text-xs font-bold text-cyan-900/60">
-              {filteredProducts.length} opciones disponibles
-            </span>
-          </div>
+                  <div className="flex-1 flex flex-col justify-between space-y-2">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-[#f70071] block">
+                        {product.categoryLabel || product.category}
+                      </span>
+                      <h4 className="font-syne font-black text-xl text-[#2B051C] group-hover:text-[#f70071] transition-colors leading-snug">
+                        {product.name}
+                      </h4>
+                      <p className="text-xs text-gray-500 font-medium line-clamp-2 leading-relaxed">
+                        {product.description}
+                      </p>
+                    </div>
 
-          {filteredProducts.length === 0 ? (
-            <div className="bg-white rounded-2xl p-12 text-center border border-cyan-100 space-y-3">
-              <span className="text-4xl block">❄️</span>
-              <h4 className="font-bold text-lg text-[#1A237E]">No hay flores en esta sección</h4>
-              <p className="text-xs text-cyan-900/60">Prueba seleccionando otra categoría visual o busca con otro término.</p>
-              <button
-                onClick={() => setSelectedCategory('todos')}
-                className="bg-[#00838F] text-white px-6 py-2.5 rounded-full text-xs font-bold uppercase cursor-pointer hover:bg-[#00695C] transition-all"
-              >
-                Ver Todo el Catálogo
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredProducts.map((product) => {
-                const isWishlisted = wishlistIds.includes(product.id);
-                const productImage = product.image || (product as any).images?.[0] || 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800';
-
-                return (
-                  <div
-                    key={product.id}
-                    onClick={() => onQuickView(product)}
-                    className="bg-white rounded-2xl p-4 sm:p-5 border border-cyan-100 shadow-xs hover:shadow-md transition-all cursor-pointer group flex justify-between gap-4 text-left relative"
-                  >
-                    {/* Item Text & Price Details (Left Side Uber Eats Style) */}
-                    <div className="flex-1 flex flex-col justify-between space-y-2">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-amber-500 flex items-center gap-1">
-                            <Star className="w-3.5 h-3.5 fill-current" />
-                            <span>{product.rating}</span>
-                          </span>
-                          <span className="bg-cyan-50 text-[#00838F] text-[9px] font-black uppercase px-2 py-0.5 rounded-full border border-cyan-200">
-                            ❄️ 72h / Express
-                          </span>
-                        </div>
-
-                        <h4 className="font-extrabold text-base sm:text-lg text-[#1A237E] group-hover:text-[#00838F] transition-colors leading-snug">
-                          {product.name}
-                        </h4>
-
-                        <p className="text-xs text-cyan-950/70 line-clamp-2 leading-relaxed font-medium">
-                          {product.description}
-                        </p>
+                    <div className="flex items-center justify-between pt-2 border-t border-pink-100">
+                      <div>
+                        <span className="font-syne font-black text-2xl text-[#f70071] block">
+                          ${product.price.toLocaleString('es-CL')} CLP
+                        </span>
+                        <span className="text-[10px] text-emerald-600 font-bold block">
+                          🎉 Despacho Gratis La Florida
+                        </span>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2">
-                        <div>
-                          <span className="font-extrabold text-xl text-[#C2185B] block">
-                            ${product.price.toLocaleString('es-CL')} <span className="text-xs text-cyan-900/60 font-normal">CLP</span>
-                          </span>
-                          <span className="text-[10px] text-emerald-700 font-bold block">
-                            🎉 Envío Gratis La Florida
-                          </span>
-                        </div>
-
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             onToggleWishlist(product);
                           }}
-                          className={`p-2 rounded-full border transition-all ${
-                            isWishlisted ? 'bg-[#C2185B] text-white border-[#C2185B]' : 'bg-gray-50 text-gray-400 hover:text-[#C2185B] border-gray-200'
+                          className={`p-3 rounded-2xl border transition-all ${
+                            isWishlisted
+                              ? 'bg-[#f70071] text-white border-[#f70071]'
+                              : 'bg-gray-50 text-gray-400 hover:text-[#f70071] border-gray-200'
                           }`}
                         >
                           <Heart className="w-4 h-4 fill-current" />
                         </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAddToCart(product);
+                          }}
+                          className="bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-xs uppercase px-6 py-3 rounded-2xl shadow-lg flex items-center gap-2 transition-all"
+                        >
+                          <Plus className="w-4 h-4 stroke-[3]" />
+                          <span>Añadir al Pedido</span>
+                        </button>
                       </div>
                     </div>
-
-                    {/* Item Thumbnail & Plus Button (Right Side Uber Eats Style) */}
-                    <div className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden bg-cyan-50 shrink-0 border border-cyan-100">
-                      <img
-                        src={productImage}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onAddToCart(product);
-                        }}
-                        className="absolute bottom-2 right-2 bg-[#C2185B] hover:bg-[#8E24AA] text-white p-2.5 rounded-full shadow-lg cursor-pointer transition-all transform hover:scale-110 flex items-center justify-center"
-                        title="Agregar al pedido"
-                      >
-                        <Plus className="w-5 h-5 stroke-[3]" />
-                      </button>
-                    </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </section>
   );

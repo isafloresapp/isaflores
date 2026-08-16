@@ -58,7 +58,7 @@ export const INITIAL_SLIDERS: SliderItem[] = [
     id: 1,
     badge: 'MANIFIESTO ARTESANAL',
     title: 'Esculturas Vivas Creadas para Perdurar',
-    desc: 'En el Atelier IsaFlores, cada tallo floral no es solo un adorno; es una escultura individual concebida con alambre de calibre flexible y fibras de chenille afelpadas de alta densidad.',
+    desc: 'En el Taller IsaFlores, cada tallo floral no es solo un adorno; es una escultura individual concebida con alambre de calibre flexible y fibras de chenille afelpadas de alta densidad.',
     image: 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800',
     highlights: [
       'Modelado 100% artesanal en Santiago',

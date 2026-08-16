@@ -1481,7 +1481,7 @@ export const CrmModal: React.FC<CrmModalProps> = ({ isOpen, onClose, onUpdatePro
                       <span>Diseña tu Ramo (Variedades, Colores & Precios por Tallo)</span>
                     </h4>
                     <span className="text-[10px] text-[#ff96c5] font-bold">
-                      Agrega o edita las flores y precios que tus clientes pueden elegir en el Atelier personalizable
+                      Agrega o edita las flores y precios que tus clientes pueden elegir en el Taller personalizable
                     </span>
                   </div>
                   <button

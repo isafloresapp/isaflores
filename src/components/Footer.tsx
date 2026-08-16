@@ -74,7 +74,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenCrm }) => {
               target="_blank"
               rel="noopener noreferrer"
               className="w-10 h-10 rounded-full bg-white text-[#E91E63] flex items-center justify-center transition-all cursor-pointer shadow-xs hover:scale-110 border border-[#F9E2EC]"
-              title="Instagram Atelier"
+              title="Instagram Taller"
             >
               <Instagram className="w-5 h-5" />
             </a>
@@ -99,7 +99,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenCrm }) => {
             <li><a href="#productos" className="hover:text-[#E91E63] transition-colors">Bodas & Celebraciones</a></li>
             <li><a href="#productos" className="hover:text-[#E91E63] transition-colors">Eventos & Regalos</a></li>
             <li><a href="#productos" className="hover:text-[#E91E63] transition-colors">Ramos Eternos de Autor</a></li>
-            <li><a href="#custom-builder" className="hover:text-[#E91E63] transition-colors">Atelier de Diseño a Medida</a></li>
+            <li><a href="#custom-builder" className="hover:text-[#E91E63] transition-colors">Taller de Diseño a Medida</a></li>
           </ul>
         </div>
 
