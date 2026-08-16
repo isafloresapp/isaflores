@@ -102,25 +102,25 @@ export const StoryCarousel: React.FC<StoryCarouselProps> = ({
   ];
 
   return (
-    /* OUTER CONTAINER WITH HEIGHT TO DRIVE HORIZONTAL SCROLL */
-    <section className="relative bg-[#1A0312] text-white h-[280vh]" id="historia" ref={containerRef}>
+    /* OUTER CONTAINER WITH ADAPTIVE MOBILE HEIGHT (140vh on mobile, 260vh on desktop) */
+    <section className="relative bg-[#1A0312] text-white h-[160vh] sm:h-[260vh]" id="historia" ref={containerRef}>
       {/* STICKY FULLSCREEN VIEWPORT */}
-      <div className="sticky top-0 h-screen w-full flex flex-col justify-between p-4 sm:p-8 overflow-hidden z-20 bg-[#1A0312]">
+      <div className="sticky top-0 h-screen w-full flex flex-col justify-between p-3 sm:p-8 overflow-hidden z-20 bg-[#1A0312]">
         
         {/* TOP TOOLBAR HEADER */}
-        <div className="max-w-7xl mx-auto w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/15 pb-4 shrink-0 z-30">
-          <div className="text-left space-y-1">
-            <div className="inline-flex items-center gap-2 bg-[#f70071]/20 border border-[#f70071]/40 px-3.5 py-1 rounded-full text-xs font-black uppercase text-[#ff96c5]">
-              <Sparkles className="w-3.5 h-3.5 text-[#ff5aa4] animate-spin" />
+        <div className="max-w-7xl mx-auto w-full flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/15 pb-3 shrink-0 z-30">
+          <div className="text-left space-y-0.5">
+            <div className="inline-flex items-center gap-1.5 bg-[#f70071]/20 border border-[#f70071]/40 px-3 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase text-[#ff96c5]">
+              <Sparkles className="w-3 h-3 text-[#ff5aa4] animate-spin" />
               <span>Experiencia IsaFlores</span>
             </div>
-            <h2 className="font-syne text-xl sm:text-3xl font-black text-white">
+            <h2 className="font-syne text-lg sm:text-3xl font-black text-white">
               El Arte Detrás de Nuestras <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#f70071] via-[#ff96c5] to-amber-300">Flores Eternas</span>
             </h2>
           </div>
 
           {/* Interactive Slide Selector Pills */}
-          <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex items-center gap-1.5 self-start sm:self-auto">
             {sliders.map((s, idx) => {
               const isCurrent = idx === activeSlideIndex;
               return (
@@ -134,9 +134,9 @@ export const StoryCarousel: React.FC<StoryCarouselProps> = ({
                       window.scrollTo({ top: targetScroll, behavior: 'smooth' });
                     }
                   }}
-                  className={`px-4 py-2 rounded-full text-xs font-black transition-all cursor-pointer flex items-center gap-2 border ${
+                  className={`px-3 py-1 rounded-full text-[11px] font-black transition-all cursor-pointer flex items-center gap-1 border ${
                     isCurrent
-                      ? 'bg-[#f70071] text-white border-[#f70071] shadow-lg scale-105 ring-2 ring-[#f70071]/40'
+                      ? 'bg-[#f70071] text-white border-[#f70071] shadow-md scale-105 ring-1 ring-[#f70071]/40'
                       : 'bg-white/10 text-white/70 border-white/15 hover:bg-white/20'
                   }`}
                 >
@@ -149,7 +149,7 @@ export const StoryCarousel: React.FC<StoryCarouselProps> = ({
         </div>
 
         {/* FULL-BLEED SLIDE TRACK */}
-        <div className="max-w-7xl mx-auto w-full flex-1 flex items-center justify-center my-3 overflow-hidden relative">
+        <div className="max-w-7xl mx-auto w-full flex-1 flex items-center justify-center my-2 overflow-hidden relative">
           <div
             className="flex w-full h-full transition-transform duration-300 ease-out"
             style={{ transform: `translateX(-${scrollProgress * (totalSlides - 1) * 100}%)` }}
@@ -165,7 +165,7 @@ export const StoryCarousel: React.FC<StoryCarouselProps> = ({
                 >
                   {/* FULL-BLEED IMAGE BACKGROUND SLIDE CARD */}
                   <div
-                    className={`w-full max-w-6xl h-full max-h-[620px] rounded-3xl overflow-hidden border-2 border-white/20 shadow-2xl relative flex items-end sm:items-center text-left transition-all duration-500 transform ${
+                    className={`w-full max-w-6xl h-full max-h-[480px] sm:max-h-[620px] rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-white/20 shadow-2xl relative flex items-end sm:items-center text-left transition-all duration-500 transform ${
                       isCurrent ? 'scale-100 opacity-100' : 'scale-95 opacity-75'
                     }`}
                   >
@@ -180,58 +180,58 @@ export const StoryCarousel: React.FC<StoryCarouselProps> = ({
                     <div className="absolute inset-0 bg-gradient-to-t sm:bg-gradient-to-r from-black/95 via-black/80 to-black/30 z-10" />
 
                     {/* WATERMARK NUMBER */}
-                    <span className="absolute bottom-2 right-4 font-syne text-[140px] sm:text-[220px] font-black text-white/5 select-none pointer-events-none leading-none z-10">
+                    <span className="absolute bottom-2 right-4 font-syne text-[100px] sm:text-[220px] font-black text-white/5 select-none pointer-events-none leading-none z-10">
                       0{idx + 1}
                     </span>
 
-                    {/* OVERLAY SLIDE TEXT CONTENT (SUBTITULO, TITULO, DESCRIPCION & BOTON LLAMADO A LA ATENCION) */}
-                    <div className="relative z-20 p-6 sm:p-12 lg:p-16 max-w-3xl space-y-4 sm:space-y-6">
+                    {/* OVERLAY SLIDE TEXT CONTENT */}
+                    <div className="relative z-20 p-4 sm:p-12 lg:p-16 max-w-3xl space-y-2.5 sm:space-y-6">
                       
                       {/* Floating Badge & Subtitle */}
-                      <div className="space-y-2">
-                        <div className="inline-flex items-center gap-2 bg-[#f70071]/30 backdrop-blur-md border border-[#f70071]/50 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider text-[#ffc0dc] shadow-lg">
-                          <span className="text-base">{theme.emoji}</span>
+                      <div className="space-y-1">
+                        <div className="inline-flex items-center gap-1.5 bg-[#f70071]/30 backdrop-blur-md border border-[#f70071]/50 px-3 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider text-[#ffc0dc] shadow-md">
+                          <span className="text-xs sm:text-base">{theme.emoji}</span>
                           <span>{slide.badge || theme.badge}</span>
                         </div>
 
-                        <span className="text-xs sm:text-sm font-black uppercase tracking-widest text-[#ff96c5] block pt-1">
+                        <span className="text-[10px] sm:text-sm font-black uppercase tracking-widest text-[#ff96c5] block">
                           {getSubtitles(idx)}
                         </span>
                       </div>
 
                       {/* MAIN TITLE */}
-                      <h3 className="font-syne text-2xl sm:text-5xl lg:text-6xl font-black text-white leading-tight drop-shadow-xl">
+                      <h3 className="font-syne text-xl sm:text-5xl lg:text-6xl font-black text-white leading-tight drop-shadow-xl line-clamp-2 sm:line-clamp-none">
                         {slide.title}
                       </h3>
 
                       {/* DESCRIPTION */}
-                      <p className="text-sm sm:text-lg text-white/95 leading-relaxed font-semibold max-w-2xl drop-shadow-md">
+                      <p className="text-xs sm:text-lg text-white/95 leading-relaxed font-semibold max-w-2xl drop-shadow-md line-clamp-2 sm:line-clamp-none">
                         {slide.desc}
                       </p>
 
                       {/* HIGHLIGHTS CHECKLIST */}
                       {slide.highlights && slide.highlights.length > 0 && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2.5 pt-0.5">
                           {slide.highlights.map((h, hIdx) => (
                             <div
                               key={hIdx}
-                              className="flex items-center gap-2.5 bg-black/40 backdrop-blur-md px-3.5 py-2 rounded-xl border border-white/20 text-xs sm:text-sm font-bold text-white shadow-md"
+                              className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/20 text-[11px] sm:text-sm font-bold text-white shadow-xs"
                             >
-                              <CheckCircle2 className="w-4 h-4 text-[#ff5aa4] shrink-0" />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-[#ff5aa4] shrink-0" />
                               <span className="line-clamp-1">{h}</span>
                             </div>
                           ))}
                         </div>
                       )}
 
-                      {/* EYE-CATCHING CALL TO ACTION BUTTON (BOTON DESTACADO DE LLAMADO DE ATENCION) */}
-                      <div className="pt-3 sm:pt-6">
+                      {/* CALL TO ACTION BUTTON */}
+                      <div className="pt-2 sm:pt-6">
                         <button
                           onClick={getActionFn(idx)}
-                          className="w-full sm:w-auto bg-gradient-to-r from-[#f70071] to-[#ff1b82] hover:from-[#ff1b82] hover:to-[#f70071] text-white font-black text-xs sm:text-sm uppercase tracking-widest px-8 sm:px-10 py-4 rounded-full flex items-center justify-center gap-3 shadow-2xl transition-all transform hover:scale-105 cursor-pointer ring-4 ring-[#f70071]/30 active:scale-95"
+                          className="w-full sm:w-auto bg-gradient-to-r from-[#f70071] to-[#ff1b82] hover:from-[#ff1b82] hover:to-[#f70071] text-white font-black text-[11px] sm:text-sm uppercase tracking-widest px-6 sm:px-10 py-3 sm:py-4 rounded-full flex items-center justify-center gap-2.5 shadow-xl transition-all transform active:scale-95 cursor-pointer border border-white/30"
                         >
                           <span>{getActionText(idx)}</span>
-                          <ArrowRight className="w-5 h-5 stroke-[3]" />
+                          <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" />
                         </button>
                       </div>
                     </div>
@@ -243,15 +243,15 @@ export const StoryCarousel: React.FC<StoryCarouselProps> = ({
         </div>
 
         {/* BOTTOM PROGRESS BAR */}
-        <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-4 border-t border-white/15 pt-4 shrink-0 z-30">
-          <div className="flex items-center gap-2 text-xs text-white/90 font-bold">
-            <span className="text-base animate-pulse">📜</span>
-            <span>
-              Sigue bajando: la historia avanza automáticamente ({Math.round(scrollProgress * 100)}%)
+        <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-4 border-t border-white/15 pt-2.5 shrink-0 z-30">
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-white/90 font-bold">
+            <span className="text-xs sm:text-base animate-pulse">📜</span>
+            <span className="truncate max-w-[200px] sm:max-w-none">
+              Sigue bajando: los sliders avanzan solos ({Math.round(scrollProgress * 100)}%)
             </span>
           </div>
 
-          <div className="w-36 sm:w-60 bg-white/20 h-2.5 rounded-full overflow-hidden relative">
+          <div className="w-24 sm:w-60 bg-white/20 h-2 rounded-full overflow-hidden relative shrink-0">
             <div
               className="bg-gradient-to-r from-[#f70071] via-[#ff5aa4] to-amber-300 h-full transition-all duration-150 rounded-full shadow-lg"
               style={{ width: `${Math.max(5, scrollProgress * 100)}%` }}
