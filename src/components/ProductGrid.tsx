@@ -1,6 +1,10 @@
 import React from 'react';
 import { Product } from '../types';
-import { Heart, Eye, Plus, Star, Flame, Clock, Bike, Snowflake } from 'lucide-react';
+import { Heart, Eye, Plus, Star, Flame, Clock, Bike, Snowflake, ArrowRight, Sparkles, Layers, Check } from 'lucide-react';
+import heroBouquetImg from '../assets/images/hero_pipe_cleaner_bouquet_1786069749958.jpg';
+import girasolesImg from '../assets/images/girasoles_limpiapipas_1786069760102.jpg';
+import kitDiyImg from '../assets/images/kit_diy_limpiapipas_1786069771911.jpg';
+import heroArtImg from '../assets/images/hero_art.jpg';
 
 interface ProductGridProps {
   products: Product[];
@@ -14,12 +18,69 @@ interface ProductGridProps {
   onOpenCustomBuilder: () => void;
 }
 
+const CATEGORY_IMAGE_MENU = [
+  {
+    id: 'flores-temporada',
+    label: 'Flores Temporada',
+    subtitle: 'Rosas, Liliums, Tulipanes & Girasoles',
+    badge: '🔥 Tendencia',
+    icon: '🌺',
+    image: 'https://images.unsplash.com/photo-1563241527-3004b7be0ffd?auto=format&fit=crop&q=80&w=800',
+    gradient: 'from-[#f70071]/85 to-[#2B051C]/90',
+  },
+  {
+    id: 'ramos',
+    label: 'Ramos Eternos',
+    subtitle: 'Diseños de Autor en Limpiapipas',
+    badge: '💐 Insignia',
+    icon: '💐',
+    image: heroBouquetImg,
+    gradient: 'from-[#8E24AA]/85 to-[#2B051C]/90',
+  },
+  {
+    id: 'girasoles',
+    label: 'Colección Girasoles',
+    subtitle: 'Chenille Amarillo & Núcleo Pardo',
+    badge: '🌻 Favoritos',
+    icon: '🌻',
+    image: girasolesImg,
+    gradient: 'from-[#E65100]/85 to-[#2B051C]/90',
+  },
+  {
+    id: 'bodas',
+    label: 'Bodas & Novias',
+    subtitle: 'Bouquets Nupciales & Distintivos',
+    badge: '💍 Elegante',
+    icon: '💍',
+    image: heroArtImg,
+    gradient: 'from-[#4A148C]/85 to-[#2B051C]/90',
+  },
+  {
+    id: 'kits',
+    label: 'Kits DIY Armar',
+    subtitle: '50 Fibras + Guía de Moldeado',
+    badge: '🎨 Manualidades',
+    icon: '🎨',
+    image: kitDiyImg,
+    gradient: 'from-[#00695C]/85 to-[#2B051C]/90',
+  },
+  {
+    id: 'regalos',
+    label: 'Regalos & Cajas',
+    subtitle: 'Arreglos en Cofre + Tarjeta',
+    badge: '🎁 Sorpresa',
+    icon: '🎁',
+    image: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&q=80&w=800',
+    gradient: 'from-[#C2185B]/85 to-[#2B051C]/90',
+  },
+];
+
 const WINTER_FILTER_CHIPS = [
   { id: 'todos', label: 'Todas las Flores', icon: '❄️' },
+  { id: 'flores-temporada', label: 'Flores Temporada', icon: '🌺' },
   { id: 'ramos', label: 'Ramos Eternos', icon: '💐' },
   { id: 'girasoles', label: 'Girasoles', icon: '🌻' },
   { id: 'bodas', label: 'Bodas & Novias', icon: '💍' },
-  { id: 'eventos', label: 'Eventos', icon: '✨' },
   { id: 'regalos', label: 'Regalos', icon: '🎁' },
   { id: 'kits', label: 'Kits DIY', icon: '🎨' },
 ];
@@ -48,7 +109,100 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 
   return (
     <section className="py-8 bg-[#F4F8FA] text-[#1A237E]" id="productos">
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 text-left space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 text-left space-y-10">
+
+        {/* VISUAL CATEGORY IMAGE MENU SECTION (Menú de Imágenes de Categorías) */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-cyan-200 pb-3">
+            <div>
+              <div className="inline-flex items-center gap-1.5 bg-[#f70071]/10 text-[#f70071] px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider mb-1">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Colecciones Florales IsaFlores</span>
+              </div>
+              <h2 className="font-syne text-2xl sm:text-4xl font-black text-[#1A237E]">
+                Menú de Categorías Visuales
+              </h2>
+            </div>
+            <span className="text-xs font-bold text-[#00838F] block">
+              Toca una categoría con foto para filtrar la tienda
+            </span>
+          </div>
+
+          {/* Category Cards Grid & Horizontal Scroll */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+            {CATEGORY_IMAGE_MENU.map((cat) => {
+              const isSelected = selectedCategory === cat.id;
+
+              return (
+                <div
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`group relative h-48 sm:h-56 rounded-3xl overflow-hidden cursor-pointer shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-2 ${
+                    isSelected
+                      ? 'border-[#f70071] ring-4 ring-[#f70071]/30 scale-[1.02]'
+                      : 'border-white hover:border-cyan-300'
+                  }`}
+                >
+                  {/* Category Image */}
+                  <img
+                    src={cat.image}
+                    alt={cat.label}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  />
+
+                  {/* Gradient Overlay */}
+                  <div className={`absolute inset-0 bg-gradient-to-t ${cat.gradient} p-3 sm:p-4 flex flex-col justify-between text-white transition-opacity`} />
+
+                  {/* Top Badge & Selected Status */}
+                  <div className="relative z-10 flex items-center justify-between">
+                    <span className="bg-black/40 backdrop-blur-md text-white text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border border-white/20">
+                      {cat.badge}
+                    </span>
+
+                    {isSelected && (
+                      <span className="w-6 h-6 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-lg animate-bounce">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Bottom Text Content */}
+                  <div className="relative z-10 space-y-1 text-left">
+                    <div className="text-xl sm:text-2xl drop-shadow-md">{cat.icon}</div>
+                    <h3 className="font-syne font-black text-sm sm:text-base text-white leading-tight drop-shadow-sm group-hover:text-[#ffc0dc] transition-colors">
+                      {cat.label}
+                    </h3>
+                    <p className="text-[10px] text-white/80 font-medium line-clamp-1">
+                      {cat.subtitle}
+                    </p>
+                    <div className="pt-1 flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-[#ff96c5] group-hover:translate-x-1 transition-transform">
+                      <span>Ver Flores</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Sleek Pills Category Filter Bar */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+          {WINTER_FILTER_CHIPS.map((chip) => (
+            <button
+              key={chip.id}
+              onClick={() => setSelectedCategory(chip.id)}
+              className={`shrink-0 px-4 py-2 rounded-full text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 border ${
+                selectedCategory === chip.id
+                  ? 'bg-[#1A237E] text-white border-[#1A237E] shadow-md ring-2 ring-[#00838F]'
+                  : 'bg-white text-[#1A237E] border-cyan-200 hover:bg-cyan-50'
+              }`}
+            >
+              <span>{chip.icon}</span>
+              <span>{chip.label}</span>
+            </button>
+          ))}
+        </div>
 
         {/* Uber Eats "Seleccionados para Ti" Featured Row */}
         {selectedCategory === 'todos' && !searchQuery && (
@@ -124,17 +278,18 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
               {selectedCategory === 'todos' ? 'Menú de Ramos & Flores' : WINTER_FILTER_CHIPS.find(c => c.id === selectedCategory)?.label}
             </h3>
             <span className="text-xs font-bold text-cyan-900/60">
-              {filteredProducts.length} opciones
+              {filteredProducts.length} opciones disponibles
             </span>
           </div>
 
           {filteredProducts.length === 0 ? (
-            <div className="bg-white rounded-2xl p-12 text-center border border-cyan-100">
-              <span className="text-4xl block mb-3">❄️</span>
-              <h4 className="font-bold text-lg text-[#1A237E] mb-1">No hay flores en esta sección</h4>
+            <div className="bg-white rounded-2xl p-12 text-center border border-cyan-100 space-y-3">
+              <span className="text-4xl block">❄️</span>
+              <h4 className="font-bold text-lg text-[#1A237E]">No hay flores en esta sección</h4>
+              <p className="text-xs text-cyan-900/60">Prueba seleccionando otra categoría visual o busca con otro término.</p>
               <button
                 onClick={() => setSelectedCategory('todos')}
-                className="bg-[#00838F] text-white px-6 py-2 rounded-full text-xs font-bold uppercase mt-3"
+                className="bg-[#00838F] text-white px-6 py-2.5 rounded-full text-xs font-bold uppercase cursor-pointer hover:bg-[#00695C] transition-all"
               >
                 Ver Todo el Catálogo
               </button>
